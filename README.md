@@ -83,7 +83,7 @@ def f(a, b):
 Now, the user owns its derivative code and may easily refactor/edit it! This is especially useful
 
 
-## Usage example
+## Next steps
 
 There are the next steps:
 
