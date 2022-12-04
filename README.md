@@ -90,4 +90,4 @@ There are the next steps:
 * **Automatic refactoring**. There is room for improvement to make the automatically produced Python code easier to read/maintain. 
 An automatic refactoring tool should be able to translate this low-level Python style into a more readable one for humans.
 
-* **More operators**. 19 jaxpr operators are implemented ('add', 'mul', 'cos', ...). The exhaustive list of the implemented operators is in the file "primitive_mapping". This python file aims to map jaxpr operator (the name of the functions) into python code (string returned by the function). New operators will be implemented there.
+* **More operators**. Today 23 jaxpr operators are implemented ('add', 'mul', 'cos', ...). The exhaustive list of the implemented operators is in the file "primitive_mapping". This python file aims to map jaxpr operator (the name of the functions) into python code (string returned by the function). New operators will be implemented there.
