@@ -4,21 +4,39 @@ import os
 
 
 def add(input_var, output_var, params):
-    rvalue = " + ".join(input_var)  # 1 or 2
+    rvalue = " + ".join(input_var)  # 2
     lvalue = output_var[0]
     return f"{lvalue} = {rvalue}"
+
+
+def add_any(input_var, output_var, params):
+    return add(input_var, output_var, params)
 
 
 def mul(input_var, output_var, params):
-    rvalue = " * ".join(input_var)  # 1 or 2
+    rvalue = " * ".join(input_var)  # 2
     lvalue = output_var[0]
     return f"{lvalue} = {rvalue}"
+
+
+def sub(input_var, output_var, params):
+    rvalue = " - ".join(input_var)  # 2
+    lvalue = output_var[0]
+    return f"{lvalue} = {rvalue}"
+
+
+def neg(input_var, output_var, params):
+    return f"{output_var[0]} = -{input_var[0]}"
 
 
 def div(input_var, output_var, params):
-    rvalue = " / ".join(input_var)  # 1 or 2
+    rvalue = " / ".join(input_var)  # 2
     lvalue = output_var[0]
     return f"{lvalue} = {rvalue}"
+
+
+def integer_pow(input_var, output_var, params):
+    return f"{output_var[0]} = {input_var[0]} ** {params['y']}"
 
 
 def log(input_var, output_var, params):

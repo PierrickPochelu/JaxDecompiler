@@ -9,16 +9,43 @@ from jax import numpy as jnp
 from os import path, linesep
 
 
-def info_jaxpr(python_f, x):
+def from_jaxpr_object_to_python(
+    jaxpr_obj, module_name="decompiled_module", dir_path="out", is_python_returned=False
+):
+    """from jaxpr code to python code"""
+    python_lines = decompiler(jaxpr_obj)
+
+    f = from_strings_to_callable(
+        python_lines, module_name=module_name, dir_path=dir_path
+    )
+    if is_python_returned:
+        return f, (os.linesep).join(python_lines)
+    else:
+        return f
+
+
+def from_wrapped_jaxpr_to_python(python_f, moc_inputs, **kwargs):
+    """Compilation followed by Decompilation allows to check if the decompilation is correct
+    We assume Compilation is always correct here.
+    Therefore, input program should be similar to the output program"""
+    jaxpr_obj = jax.make_jaxpr(python_f)(*moc_inputs)
+
+    out = from_jaxpr_object_to_python(jaxpr_obj, **kwargs)
+
+    return out  # can be either (f:Callable,code:str) or f:Callable
+
+
+def display_wrapped_jaxpr(python_f, x):
     jaxpr_obj = jax.make_jaxpr(python_f)(*x)
     jaxpr_code = jaxpr_obj.jaxpr
     """used in development phase to build the instruction table named 'primitive_mapping' """
+    print("===== HEADER =======")
     print("invars:", jaxpr_code.invars)
     print("outvars:", jaxpr_code.outvars)
     print("constvars:", jaxpr_code.constvars)
-    for eqn in jaxpr_code.eqns:
-        print("equation:", eqn.invars, eqn.primitive, eqn.outvars, eqn.params)
-    print("===== COMPLETE =======")
+    # for eqn in jaxpr_code.eqns:
+    #    print("equation:", eqn.invars, eqn.primitive, eqn.outvars, eqn.params)
+    print("===== CODE =======")
     print(jaxpr_obj)
 
 
@@ -86,7 +113,7 @@ def _line_body(eqn, K, tab_level):
     jaxpr_line = str(eqn)
 
     if python_op_name not in K:
-        raise NotImplemented(f'Instruction: "{python_op_name}" not yet supported')
+        raise TypeError(f'Instruction: "{python_op_name}" not yet supported')
 
     # Check if we need it. It is usefull for pmap
     # if "call_jaxprs" in eqn.params:
@@ -127,14 +154,14 @@ def import_statements(tabbed_python_lines):
     tabbed_python_lines.append("from jax.numpy import *")
 
 
-def decompiler(jaxpr_obj, K, starting_tab_level=0, python_func_name="f"):
+def decompiler(jaxpr_obj, starting_tab_level=0, python_func_name="f"):
     jaxpr_code = jaxpr_obj.jaxpr
-
+    K = get_primitive_mapping()
     tabbed_python_lines = []
 
     import_statements(tabbed_python_lines)
 
-    p = _line_input(jaxpr_code, starting_tab_level)
+    p = _line_input(jaxpr_code, starting_tab_level, python_func_name=python_func_name)
     tabbed_python_lines.append(p)
 
     # Constants

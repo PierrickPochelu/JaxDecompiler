@@ -2,20 +2,6 @@ import unittest
 import jax
 import decompiler
 
-K = decompiler.get_primitive_mapping()
-
-
-def python_jaxpr_python(python_f, moc_inputs):
-    """Compilation followed by Decompilation allows to check if the decompilation is correct
-    We assume Compilation is always correct here.
-    Therefore, input program should be similar to the output program"""
-    jaxpr_obj = jax.make_jaxpr(python_f)(*moc_inputs)
-
-    python_lines = decompiler.decompiler(jaxpr_obj, K)
-
-    f = decompiler.from_strings_to_callable(python_lines)
-    return f
-
 
 class MyTestCase(unittest.TestCase):
     def test_from_strings_to_callable(self):
@@ -28,7 +14,7 @@ class MyTestCase(unittest.TestCase):
         def python_f():
             return 1 + 1
 
-        decompiled_f = python_jaxpr_python(python_f, ())
+        decompiled_f = decompiler.from_wrapped_jaxpr_to_python(python_f, ())
         y = decompiled_f()
         self.assertEqual(2, y)
 
@@ -36,7 +22,7 @@ class MyTestCase(unittest.TestCase):
         def python_f():
             return 1, 1
 
-        decompiled_f = python_jaxpr_python(python_f, ())
+        decompiled_f = decompiler.from_wrapped_jaxpr_to_python(python_f, ())
         y = decompiled_f()
         self.assertEqual((1, 1), y)
 
@@ -44,7 +30,7 @@ class MyTestCase(unittest.TestCase):
         def python_f(x):
             return x + 1
 
-        decompiled_f = python_jaxpr_python(python_f, (1,))
+        decompiled_f = decompiler.from_wrapped_jaxpr_to_python(python_f, (1,))
         y = decompiled_f(10)
         self.assertEqual(11, y)
 
@@ -52,7 +38,7 @@ class MyTestCase(unittest.TestCase):
         def python_f(x, y):
             return x + y
 
-        decompiled_f = python_jaxpr_python(python_f, (1, 1))
+        decompiled_f = decompiler.from_wrapped_jaxpr_to_python(python_f, (1, 1))
         y = decompiled_f(10, 1)
         self.assertEqual(11, y)
 
@@ -60,7 +46,7 @@ class MyTestCase(unittest.TestCase):
         def python_f(x, y, z):
             return x + y + z
 
-        decompiled_f = python_jaxpr_python(python_f, (1, 1, 1))
+        decompiled_f = decompiler.from_wrapped_jaxpr_to_python(python_f, (1, 1, 1))
         y = decompiled_f(10, 100, 1)
         self.assertEqual(111, y)
 
@@ -68,7 +54,7 @@ class MyTestCase(unittest.TestCase):
         def python_f(x, y, z):
             return x + 1, y + z, 1 + 1, 3
 
-        decompiled_f = python_jaxpr_python(python_f, (1, 1, 1))
+        decompiled_f = decompiler.from_wrapped_jaxpr_to_python(python_f, (1, 1, 1))
         y = decompiled_f(10, 100, 1)
 
         self.assertEqual(4, len(y))
@@ -82,7 +68,7 @@ class MyTestCase(unittest.TestCase):
             z += x + y + 1  # z==1+2+11+1==15
             return x, y, z
 
-        decompiled_f = python_jaxpr_python(python_f, (1, 1, 1))
+        decompiled_f = decompiler.from_wrapped_jaxpr_to_python(python_f, (1, 1, 1))
         y = decompiled_f(1, 1, 1)
 
         self.assertEqual(3, len(y))
