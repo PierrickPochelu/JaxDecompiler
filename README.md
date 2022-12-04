@@ -80,10 +80,10 @@ def f(a, b):
     p = m + o
     return p
 ```
-Now, the user owns its derivative code and may easily refactor/edit it! This is especially useful
+Now, the user owns its derivative code and may easily refactor/edit it! This is a reverse-engineering tool, for example, we can now improving arithemtic stability, manually optimize the code, ...
 
 
-## Usage example
+## Next steps
 
 There are the next steps:
 
