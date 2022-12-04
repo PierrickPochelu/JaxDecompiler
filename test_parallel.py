@@ -40,23 +40,24 @@ class MyTestCase(unittest.TestCase):
         gap = sum(y_expected-y)
         self.assertAlmostEqual(0., gap, delta=DELTA)
     """
+
     def test_pmap_1line(self):
         def python_f(x):
-            g=lambda element:element+1
-            y=jax.pmap(g)(x)
+            g = lambda element: element + 1
+            y = jax.pmap(g)(x)
             return y
 
         x = array([3], dtype=float32)
 
-        #decompiler.info_jaxpr(python_f,(x,))
+        # decompiler.info_jaxpr(python_f,(x,))
 
         decompiled_f = python_jaxpr_python(python_f, (x,))
 
         y = decompiled_f(x)
-        y_expected=python_f(x)
+        y_expected = python_f(x)
 
-        gap = sum(y_expected-y)
-        self.assertAlmostEqual(0., gap, delta=DELTA)
+        gap = sum(y_expected - y)
+        self.assertAlmostEqual(0.0, gap, delta=DELTA)
 
     """
     def test_pmap_2lines(self):
@@ -80,7 +81,6 @@ class MyTestCase(unittest.TestCase):
         gap = sum(y_expected-y)
         self.assertAlmostEqual(0., gap, delta=DELTA)
     """
-
 
 
 if __name__ == "__main__":

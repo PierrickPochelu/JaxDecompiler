@@ -10,7 +10,7 @@ from os import path, linesep
 
 
 def info_jaxpr(python_f, x):
-    jaxpr_obj= jax.make_jaxpr(python_f)(*x)
+    jaxpr_obj = jax.make_jaxpr(python_f)(*x)
     jaxpr_code = jaxpr_obj.jaxpr
     """used in development phase to build the instruction table named 'primitive_mapping' """
     print("invars:", jaxpr_code.invars)
@@ -20,6 +20,7 @@ def info_jaxpr(python_f, x):
         print("equation:", eqn.invars, eqn.primitive, eqn.outvars, eqn.params)
     print("===== COMPLETE =======")
     print(jaxpr_obj)
+
 
 def get_primitive_mapping():
     import primitive_mapping
@@ -57,7 +58,10 @@ def _line_return(jaxpr, tab_level=1):
     line = _tab(python_body_line, tab_level)
     return line
 
-def decompile_type_convert(v): # TODO for instance types are ignored (default python behaviour)
+
+def decompile_type_convert(
+    v,
+):  # TODO for instance types are ignored (default python behaviour)
     """From jaxpr object token to Python string token"""
     """type(v) in {jax.core.Var, jax.core.Literal}."""
 
@@ -65,7 +69,7 @@ def decompile_type_convert(v): # TODO for instance types are ignored (default py
         internal_type = v.aval.dtype
         dimensions = v.aval.ndim
         shape = v.aval.shape
-        v2=str(v)
+        v2 = str(v)
     elif isinstance(v, jax.core.Var):
         internal_type = v.aval.dtype
         dimensions = v.aval.ndim
@@ -76,6 +80,7 @@ def decompile_type_convert(v): # TODO for instance types are ignored (default py
         v2 = str(v)
     return v2
 
+
 def _line_body(eqn, K, tab_level):
     python_op_name = str(eqn.primitive.name)
     jaxpr_line = str(eqn)
@@ -84,12 +89,12 @@ def _line_body(eqn, K, tab_level):
         raise NotImplemented(f'Instruction: "{python_op_name}" not yet supported')
 
     # Check if we need it. It is usefull for pmap
-    #if "call_jaxprs" in eqn.params:
-    eqn.params["decompiler_line_input"]=_line_input
-    eqn.params["decompiler_line_body"]=_line_body
-    eqn.params["decompiler_line_return"]=_line_return
-    eqn.params["decompiler_K"]=K
-    eqn.params["decompiler_tab"]=_tab
+    # if "call_jaxprs" in eqn.params:
+    eqn.params["decompiler_line_input"] = _line_input
+    eqn.params["decompiler_line_body"] = _line_body
+    eqn.params["decompiler_line_return"] = _line_return
+    eqn.params["decompiler_K"] = K
+    eqn.params["decompiler_tab"] = _tab
 
     # input_var of the function (function inputs, or variable inside)
     # lvars, rvars=_lvar_rvar(jaxpr_line)
@@ -105,15 +110,15 @@ def _line_body(eqn, K, tab_level):
     params = {}
     python_body_line = python_body_line_builder(input_var, output_var, eqn.params)
 
-    if isinstance(python_body_line,str):
+    if isinstance(python_body_line, str):
         line = _tab(python_body_line, tab_level)
-    elif isinstance(python_body_line,list):
+    elif isinstance(python_body_line, list):
         # In this case
-        lines=[]
+        lines = []
         for l in python_body_line:
-            tabbed_l=_tab(l, tab_level)
+            tabbed_l = _tab(l, tab_level)
             lines.append(tabbed_l)
-        line=(os.linesep).join(lines)
+        line = (os.linesep).join(lines)
     return line
 
 
@@ -135,16 +140,16 @@ def decompiler(jaxpr_obj, K, starting_tab_level=0, python_func_name="f"):
     # Constants
     for var_name, var_val in zip(jaxpr_code.constvars, jaxpr_obj.literals):
         var_val_literal = repr(var_val)  # from jaxpr object to string literal
-        p = _tab(f"{var_name} = {var_val_literal}", starting_tab_level+1)
+        p = _tab(f"{var_name} = {var_val_literal}", starting_tab_level + 1)
         tabbed_python_lines.append(p)
 
     # body of the function
     for eqn in jaxpr_code.eqns:
-        p = _line_body(eqn, K, starting_tab_level+1)
+        p = _line_body(eqn, K, starting_tab_level + 1)
         tabbed_python_lines.append(p)
 
     # return instruction
-    p = _line_return(jaxpr_code, starting_tab_level+1)
+    p = _line_return(jaxpr_code, starting_tab_level + 1)
     tabbed_python_lines.append(p)
 
     return tabbed_python_lines

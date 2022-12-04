@@ -4,7 +4,8 @@ from jax.numpy import *
 import decompiler
 
 K = decompiler.get_primitive_mapping()
-DELTA=0.001
+DELTA = 0.001
+
 
 def python_jaxpr_python(python_f, moc_inputs):
     """Compilation followed by Decompilation allows to check if the decompilation is correct
@@ -31,20 +32,19 @@ class MyTestCase(unittest.TestCase):
 
     def test_trigonometry(self):
         def f(x):
-            return cos(x), sin(x), tanh(x),\
-                arctan(x), arccos(x), arcsin(x),\
-                tanh(x)
-
+            return cos(x), sin(x), tanh(x), arctan(x), arccos(x), arcsin(x), tanh(x)
 
         decompiler.info_jaxpr(f, (2.1,))
 
-        #return
-        decompiled_f=python_jaxpr_python(f, (0.1,))
-        y_expected=f(0.2)
-        y=decompiled_f(0.2)
+        # return
+        decompiled_f = python_jaxpr_python(f, (0.1,))
+        y_expected = f(0.2)
+        y = decompiled_f(0.2)
 
-        gap=sum(array(y_expected)-array(y))
+        gap = sum(array(y_expected) - array(y))
 
-        self.assertAlmostEqual(0.,gap,delta=DELTA)
+        self.assertAlmostEqual(0.0, gap, delta=DELTA)
+
+
 if __name__ == "__main__":
     unittest.main()
