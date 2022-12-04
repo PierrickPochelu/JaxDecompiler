@@ -9,19 +9,21 @@ from jax import numpy as jnp
 from os import path, linesep
 
 
-def _examine_jaxpr(python_f, x):
-    jaxpr_object = jax.make_jaxpr(python_f)(x).jaxpr
+def info_jaxpr(python_f, x):
+    jaxpr_obj= jax.make_jaxpr(python_f)(*x)
+    jaxpr_code = jaxpr_obj.jaxpr
     """used in development phase to build the instruction table named 'primitive_mapping' """
-    print("invars:", jaxpr_object.invars)
-    print("outvars:", jaxpr_object.outvars)
-    print("constvars:", jaxpr_object.constvars)
-    for eqn in jaxpr_object.eqns:
+    print("invars:", jaxpr_code.invars)
+    print("outvars:", jaxpr_code.outvars)
+    print("constvars:", jaxpr_code.constvars)
+    for eqn in jaxpr_code.eqns:
         print("equation:", eqn.invars, eqn.primitive, eqn.outvars, eqn.params)
-    print("=====")
-
+    print("===== COMPLETE =======")
+    print(jaxpr_obj)
 
 def get_primitive_mapping():
     import primitive_mapping
+
     K = {}
     for i in dir(primitive_mapping):
         att = getattr(primitive_mapping, i)
@@ -35,53 +37,27 @@ def _tab(python_line, tab_level):
     return tab_prefix + python_line
 
 
-def _line_input(jaxpr, tab_level=0):
-    if not hasattr(jaxpr, 'invars'):
+def _line_input(jaxpr, tab_level=0, python_func_name="f"):
+    if not hasattr(jaxpr, "invars"):
         return "def f():"
     str_input = [str(var) for var in jaxpr.invars]
-    args = ', '.join(str_input)
-    python_body_line = f"def f({args}):"
+    args = ", ".join(str_input)
+    python_body_line = f"def {python_func_name}({args}):"
     line = _tab(python_body_line, tab_level)
     return line
 
 
 def _line_return(jaxpr, tab_level=1):
-    if not hasattr(jaxpr, 'outvars'):
+    if not hasattr(jaxpr, "outvars"):
         python_body_line = "pass #no output"
     else:
         str_output = [str(var) for var in jaxpr.outvars]
-        args = ', '.join(str_output)
+        args = ", ".join(str_output)
         python_body_line = f"return {args}"
     line = _tab(python_body_line, tab_level)
     return line
 
-
-def _lvar_rvar(jaxpr_line):
-    """Not used anymore"""
-    # typically jaxpr_line=="a:f32[3,3] = add b c"
-    sides = jaxpr_line.split("=")
-    sides = [s.strip() for s in sides]
-
-    left_vars = []
-    for pair in sides[0].split(" "):
-        tokens = pair.split(":")
-        if len(tokens) == 2:
-            var_name, var_type = tokens
-        elif len(tokens) == 1:
-            var_name = tokens
-        else:
-            raise ValueError("Unexpected number of tokens")
-
-        left_vars.append(var_name)
-    # left_vars==["a"]
-
-    right = sides[1].split(" ")  # ["add", "b", "c"]
-    right_vars = right[1:]  # ["b", "c"]
-
-    return left_vars, right_vars
-
-
-def decompile_type_convert(v):
+def decompile_type_convert(v): # TODO for instance types are ignored (default python behaviour)
     """From jaxpr object token to Python string token"""
     """type(v) in {jax.core.Var, jax.core.Literal}."""
 
@@ -89,11 +65,7 @@ def decompile_type_convert(v):
         internal_type = v.aval.dtype
         dimensions = v.aval.ndim
         shape = v.aval.shape
-
-        if dimensions == 0:
-            v2 = str(v)
-        else:
-            pass  # we need to convert v into a numpy array right now
+        v2=str(v)
     elif isinstance(v, jax.core.Var):
         internal_type = v.aval.dtype
         dimensions = v.aval.ndim
@@ -104,13 +76,20 @@ def decompile_type_convert(v):
         v2 = str(v)
     return v2
 
-
-def _line(eqn, K, tab_level=1):
+def _line_body(eqn, K, tab_level):
     python_op_name = str(eqn.primitive.name)
     jaxpr_line = str(eqn)
 
     if python_op_name not in K:
-        raise NotImplemented(f"Instruction: \"{python_op_name}\" not yet supported")
+        raise NotImplemented(f'Instruction: "{python_op_name}" not yet supported')
+
+    # Check if we need it. It is usefull for pmap
+    #if "call_jaxprs" in eqn.params:
+    eqn.params["decompiler_line_input"]=_line_input
+    eqn.params["decompiler_line_body"]=_line_body
+    eqn.params["decompiler_line_return"]=_line_return
+    eqn.params["decompiler_K"]=K
+    eqn.params["decompiler_tab"]=_tab
 
     # input_var of the function (function inputs, or variable inside)
     # lvars, rvars=_lvar_rvar(jaxpr_line)
@@ -124,43 +103,57 @@ def _line(eqn, K, tab_level=1):
     # build the line as string
     python_body_line_builder = K[python_op_name]
     params = {}
-    python_body_line = python_body_line_builder(input_var, output_var, params)
-    line = _tab(python_body_line, tab_level)
+    python_body_line = python_body_line_builder(input_var, output_var, eqn.params)
+
+    if isinstance(python_body_line,str):
+        line = _tab(python_body_line, tab_level)
+    elif isinstance(python_body_line,list):
+        # In this case
+        lines=[]
+        for l in python_body_line:
+            tabbed_l=_tab(l, tab_level)
+            lines.append(tabbed_l)
+        line=(os.linesep).join(lines)
     return line
+
 
 def import_statements(tabbed_python_lines):
     tabbed_python_lines.append("import jax")
     tabbed_python_lines.append("from jax.numpy import *")
 
-def decompiler(jaxpr_obj, K):
-    jaxpr_code=jaxpr_obj.jaxpr
 
+def decompiler(jaxpr_obj, K, starting_tab_level=0, python_func_name="f"):
+    jaxpr_code = jaxpr_obj.jaxpr
 
     tabbed_python_lines = []
 
     import_statements(tabbed_python_lines)
 
-    p = _line_input(jaxpr_code, 0)
+    p = _line_input(jaxpr_code, starting_tab_level)
     tabbed_python_lines.append(p)
 
     # Constants
     for var_name, var_val in zip(jaxpr_code.constvars, jaxpr_obj.literals):
-        var_val_literal=repr(var_val) #from jaxpr object to string literal
-        p=_tab(f"{var_name} = {var_val_literal}",1)
+        var_val_literal = repr(var_val)  # from jaxpr object to string literal
+        p = _tab(f"{var_name} = {var_val_literal}", starting_tab_level+1)
         tabbed_python_lines.append(p)
 
     # body of the function
     for eqn in jaxpr_code.eqns:
-        p = _line(eqn, K, 1)
+        p = _line_body(eqn, K, starting_tab_level+1)
         tabbed_python_lines.append(p)
 
-    p = _line_return(jaxpr_code, 1)
+    # return instruction
+    p = _line_return(jaxpr_code, starting_tab_level+1)
     tabbed_python_lines.append(p)
+
     return tabbed_python_lines
 
 
-def from_strings_to_callable(python_lines, module_name="decompiled_module", dir_path="out"):
-    """warning this function create a file named `tmp_file` in the directory `dir_path` """
+def from_strings_to_callable(
+    python_lines, module_name="decompiled_module", dir_path="out"
+):
+    """warning this function create a file named `tmp_file` in the directory `dir_path`"""
 
     # Write it
     file_path = path.join(dir_path, module_name + ".py")
