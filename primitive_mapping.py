@@ -39,6 +39,14 @@ def integer_pow(input_var, output_var, params):
     return f"{output_var[0]} = {input_var[0]} ** {params['y']}"
 
 
+def pow(input_var, output_var, params):
+    return f"{output_var[0]} = {input_var[0]} ** {input_var[1]}"
+
+
+def sqrt(input_var, output_var, params):
+    return f"{output_var[0]} = sqrt({input_var[0]})"
+
+
 def log(input_var, output_var, params):
     rvalue = input_var[0]
     lvalue = output_var[0]
@@ -83,6 +91,15 @@ def asin(input_var, output_var, params):
 
 def atan(input_var, output_var, params):
     return f"{output_var[0]} = arctan({input_var[0]})"
+
+
+def copy(input_var, output_var, params):
+    return f"{output_var[0]} = jax.numpy.copy({input_var[0]})"
+
+
+def convert_element_type(input_var, output_var, params):
+    t = params["new_dtype"]
+    return f"{output_var[0]} = {input_var[0]}.astype({t})"
 
 
 def xla_pmap(input_var, output_var, params):
