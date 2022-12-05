@@ -19,7 +19,7 @@ import decompiler  # <--- My contribution
 decompiler.display_wrapped_jaxpr(df, (1.0, 1.0))
 
 # Let's decompile it
-decompiled_df, python_code = decompiler.from_wrapped_jaxpr_to_python(
+decompiled_df, python_code = decompiler.python_jaxpr_python(
     df, (1.0, 1.0), is_python_returned=True
 )
 

@@ -11,7 +11,7 @@ class MyTestCase(unittest.TestCase):
         f = lambda x: log(1 + exp(x))
         df = jax.grad(f)
 
-        decompiled_df = decompiler.from_wrapped_jaxpr_to_python(df, (10.0,))
+        decompiled_df = decompiler.python_jaxpr_python(df, (10.0,))
         y_produced = decompiled_df(10.0)
         y_expected = df(10.0)
 
@@ -21,7 +21,7 @@ class MyTestCase(unittest.TestCase):
         def python_f(x):
             return sqrt(x), x**-0.1, x**2
 
-        decompiled_df = decompiler.from_wrapped_jaxpr_to_python(python_f, (1.0,))
+        decompiled_df = decompiler.python_jaxpr_python(python_f, (1.0,))
         y = decompiled_df(2.0)
         y_expected = python_f(2.0)
 
@@ -36,7 +36,7 @@ class MyTestCase(unittest.TestCase):
         decompiler.display_wrapped_jaxpr(f, (2.1,))
 
         # return
-        decompiled_f = decompiler.from_wrapped_jaxpr_to_python(f, (0.1,))
+        decompiled_f = decompiler.python_jaxpr_python(f, (0.1,))
         y_expected = f(0.2)
         y = decompiled_f(0.2)
 
@@ -53,7 +53,7 @@ class MyTestCase(unittest.TestCase):
         decompiler.display_wrapped_jaxpr(f, (array([2.1, 3.9]),))
 
         # return
-        decompiled_f = decompiler.from_wrapped_jaxpr_to_python(f, (0.1,))
+        decompiled_f = decompiler.python_jaxpr_python(f, (0.1,))
         y_expected = f(0.2)
         y = decompiled_f(0.2)
 

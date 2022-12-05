@@ -18,7 +18,7 @@ class MyTestCase(unittest.TestCase):
 
         # decompiler.display_wrapped_jaxpr(python_f,(x,))
 
-        decompiled_f = decompiler.from_wrapped_jaxpr_to_python(python_f, (x,))
+        decompiled_f = decompiler.python_jaxpr_python(python_f, (x,))
 
         y = decompiled_f(x)
         y_expected = array([[2, 3, 4]], dtype=float32)
@@ -36,7 +36,7 @@ class MyTestCase(unittest.TestCase):
 
         # decompiler.display_wrapped_jaxpr(python_f,(x,))
 
-        decompiled_f = decompiler.from_wrapped_jaxpr_to_python(python_f, (x,))
+        decompiled_f = decompiler.python_jaxpr_python(python_f, (x,))
 
         y = decompiled_f(x)
         y_expected = python_f(x)
@@ -58,7 +58,7 @@ class MyTestCase(unittest.TestCase):
 
         #decompiler.display_wrapped_jaxpr(python_f,(x,))
 
-        decompiled_f = decompiler.from_wrapped_jaxpr_to_python(python_f, (x,))
+        decompiled_f = decompiler.python_jaxpr_python(python_f, (x,))
 
         y = decompiled_f(x)
         y_expected=array([[2, 3, 4]], dtype=float32)

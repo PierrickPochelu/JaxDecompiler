@@ -42,9 +42,11 @@ constvars: []
 ```
 
 The below code decompiles it automatically. It generates the python function and its python code as text.
+
 ```python
 import decompiler  # <--- My contribution
-decompiled_df, python_code = decompiler.from_wrapped_jaxpr_to_python(
+
+decompiled_df, python_code = decompiler.python_jaxpr_python(
     df, (1.0, 1.0), is_python_returned=True
 )
 ```
@@ -91,3 +93,5 @@ There are the next steps:
 An automatic refactoring tool should be able to translate this low-level Python style into a more readable one for humans.
 
 * **More operators**. Today 23 jaxpr operators are implemented ('add', 'mul', 'cos', ...). The exhaustive list of the implemented operators is in the file "primitive_mapping". This python file aims to map jaxpr operator (the name of the functions) into python code (string returned by the function). New operators will be implemented there.
+
+* **Automatic detection of useless codes**. In the example above, "j" variable is useless.

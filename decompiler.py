@@ -24,7 +24,7 @@ def from_jaxpr_object_to_python(
         return f
 
 
-def from_wrapped_jaxpr_to_python(python_f, moc_inputs, **kwargs):
+def python_jaxpr_python(python_f, moc_inputs, **kwargs):
     """Compilation followed by Decompilation allows to check if the decompilation is correct
     We assume Compilation is always correct here.
     Therefore, input program should be similar to the output program"""
@@ -88,7 +88,7 @@ def _line_return(jaxpr, tab_level=1):
 
 def decompile_type_convert(
     v,
-):  # TODO for instance types are ignored (default python behaviour)
+):  # TODO for instance types are partially ignored (default python behaviour)
     """From jaxpr object token to Python string token"""
     """type(v) in {jax.core.Var, jax.core.Literal}."""
 
@@ -199,7 +199,7 @@ def from_strings_to_callable(
     # refresh
     if module_name in sys.modules:
         del sys.modules[module_name]
-        time.sleep(1)  # TODO: Why is it mandatory ?
+        time.sleep(1)  # TODO: Why is it mandatory ? Urgent patch needed here
     module = __import__(module_name)
     # importlib.reload(importlib.import_module(module_name))
 
