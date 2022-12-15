@@ -114,32 +114,40 @@ def xla_pmap(input_var, output_var, params):
     _line_return = params["decompiler_line_return"]
     _tab = params["decompiler_tab"]
 
-    # comput input line
+    # collect input vars
     local_f_name = "g"
-    input_vars = set([])
+    input_vars = [str(v) for v in params["call_jaxpr"].invars]
+    """"
     for eqn in params["call_jaxpr"].eqns:
         for v in eqn.invars:
             if isinstance(v, jax.core.Var):
                 input_vars.add(str(v))
+    """
+    # collect output vars
+    #output_vars = set([])
+    """
+    for eqn in params["call_jaxpr"].eqns:
+        for v in eqn.outvars:
+            output_vars.add(str(v))
+    """
+    output_vars=[str(v) for v in params["call_jaxpr"].outvars]
+
     args = ", ".join(input_vars)
     l = f"def {local_f_name}({args}):"
     input_local_f_lines = [l]
+
+    return_vars = ", ".join(list(output_vars))
+    l = f"return {return_vars}"
+    tabbed_l = _tab(l, 1)
+    output_local_f_lines = [tabbed_l]
+
+
 
     # build body of the function
     body_local_f_lines = []
     for eqn in params["call_jaxpr"].eqns:
         python_lambda_body = _line_body(eqn, K, 1)  # 'ex: "    b = a + 1.0"
         body_local_f_lines.append(python_lambda_body)
-
-    # compute output line
-    output_vars = set([])
-    for eqn in params["call_jaxpr"].eqns:
-        for v in eqn.outvars:
-            output_vars.add(str(v))
-    return_vars = ", ".join(list(output_vars))
-    l = f"return {return_vars}"
-    tabbed_l = _tab(l, 1)
-    output_local_f_lines = [tabbed_l]
 
     # call line
     lvalue = ", ".join(output_var)
