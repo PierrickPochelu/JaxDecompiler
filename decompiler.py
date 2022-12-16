@@ -3,7 +3,7 @@ import importlib
 import os.path
 import sys
 import time
-
+from typing import *
 import jax
 from jax import numpy as jnp
 from os import path, linesep
@@ -11,7 +11,7 @@ from os import path, linesep
 
 def from_jaxpr_object_to_python(
     jaxpr_obj, module_name="decompiled_module", dir_path="out", is_python_returned=False
-):
+) -> Union[Callable, Tuple[Callable, str]]:
     """from jaxpr code to python code"""
     python_lines = decompiler(jaxpr_obj)
 
@@ -24,7 +24,9 @@ def from_jaxpr_object_to_python(
         return f
 
 
-def python_jaxpr_python(python_f, moc_inputs, **kwargs):
+def python_jaxpr_python(
+    python_f, moc_inputs, **kwargs
+) -> Union[Callable, Tuple[Callable, str]]:
     """Compilation followed by Decompilation allows to check if the decompilation is correct
     We assume Compilation is always correct here.
     Therefore, input program should be similar to the output program"""
@@ -35,7 +37,7 @@ def python_jaxpr_python(python_f, moc_inputs, **kwargs):
     return out  # can be either (f:Callable,code:str) or f:Callable
 
 
-def display_wrapped_jaxpr(python_f, x):
+def display_wrapped_jaxpr(python_f, x) -> None:
     jaxpr_obj = jax.make_jaxpr(python_f)(*x)
     jaxpr_code = jaxpr_obj.jaxpr
     """used in development phase to build the instruction table named 'primitive_mapping' """
@@ -49,7 +51,7 @@ def display_wrapped_jaxpr(python_f, x):
     print(jaxpr_obj)
 
 
-def get_primitive_mapping():
+def get_primitive_mapping() -> Dict[str, Callable]:
     import primitive_mapping
 
     K = {}
@@ -60,12 +62,22 @@ def get_primitive_mapping():
     return K
 
 
-def _tab(python_line, tab_level):
+def _tab(python_line, tab_level) -> str:
     tab_prefix = " " * 4 * tab_level
     return tab_prefix + python_line
 
 
-def _line_input(jaxpr, tab_level=0, python_func_name="f"):
+def _tab_recursively(lines, tab_level) -> None:  # lines is I/O
+    for i, l in enumerate(lines):
+        if isinstance(l, str):
+            lines[i] = _tab(l, tab_level)
+        elif isinstance(l, list):
+            _tab_recursively(l, tab_level)
+        else:
+            raise ValueError("Unexpected type in _tab_recursively()")
+
+
+def _line_input(jaxpr, tab_level=0, python_func_name="f") -> str:
     if not hasattr(jaxpr, "invars"):
         return "def f():"
     str_input = [str(var) for var in jaxpr.invars]
@@ -75,7 +87,7 @@ def _line_input(jaxpr, tab_level=0, python_func_name="f"):
     return line
 
 
-def _line_return(jaxpr, tab_level=1):
+def _line_return(jaxpr, tab_level=1) -> str:
     if not hasattr(jaxpr, "outvars"):
         python_body_line = "pass #no output"
     else:
@@ -108,7 +120,7 @@ def decompile_type_convert(
     return v2
 
 
-def _line_body(eqn, K, tab_level):
+def _line_body(eqn, K, tab_level) -> List[Union[List, str]]:
     python_op_name = str(eqn.primitive.name)
     jaxpr_line = str(eqn)
 
@@ -135,26 +147,22 @@ def _line_body(eqn, K, tab_level):
     # build the line as string
     python_body_line_builder = K[python_op_name]
     params = {}
-    python_body_line = python_body_line_builder(input_var, output_var, eqn.params)
+    lines = python_body_line_builder(input_var, output_var, eqn.params)
+    if isinstance(lines, str):
+        lines = [lines]
 
-    if isinstance(python_body_line, str):
-        line = _tab(python_body_line, tab_level)
-    elif isinstance(python_body_line, list):
-        # In this case
-        lines = []
-        for l in python_body_line:
-            tabbed_l = _tab(l, tab_level)
-            lines.append(tabbed_l)
-        line = (os.linesep).join(lines)
-    return line
+    _tab_recursively(lines, tab_level)  # python_body_line is updated
+    return lines
 
 
-def import_statements(tabbed_python_lines):
+def import_statements(tabbed_python_lines) -> None:
     tabbed_python_lines.append("import jax")
     tabbed_python_lines.append("from jax.numpy import *")
 
 
-def decompiler(jaxpr_obj, starting_tab_level=0, python_func_name="f"):
+def decompiler(
+    jaxpr_obj, starting_tab_level=0, python_func_name="f"
+) -> List[Union[List, str]]:
     jaxpr_code = jaxpr_obj.jaxpr
     K = get_primitive_mapping()
     tabbed_python_lines = []
@@ -172,8 +180,8 @@ def decompiler(jaxpr_obj, starting_tab_level=0, python_func_name="f"):
 
     # body of the function
     for eqn in jaxpr_code.eqns:
-        p = _line_body(eqn, K, starting_tab_level + 1)
-        tabbed_python_lines.append(p)
+        list_of_python_lines = _line_body(eqn, K, starting_tab_level + 1)
+        tabbed_python_lines.append(list_of_python_lines)
 
     # return instruction
     p = _line_return(jaxpr_code, starting_tab_level + 1)
@@ -182,16 +190,27 @@ def decompiler(jaxpr_obj, starting_tab_level=0, python_func_name="f"):
     return tabbed_python_lines
 
 
+def _recursively_write_python_program(
+    file, lines
+) -> None:  # warning lines may contains lines
+    for line in lines:
+        if isinstance(line, list):
+            _recursively_write_python_program(file, line)
+        elif isinstance(line, str):
+            file.write(line + os.linesep)
+        else:
+            raise ValueError("unexpected event occurs")
+
+
 def from_strings_to_callable(
     python_lines, module_name="decompiled_module", dir_path="out"
-):
+) -> Callable:
     """warning this function create a file named `tmp_file` in the directory `dir_path`"""
 
     # Write it
     file_path = path.join(dir_path, module_name + ".py")
     with open(file_path, "w") as file:
-        for line in python_lines:
-            file.write(line + linesep)
+        _recursively_write_python_program(file, python_lines)
 
     # Import it
     if dir_path not in sys.path:  # TODO can we do better ? O(n) linear scan

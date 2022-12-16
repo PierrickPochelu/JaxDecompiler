@@ -2,6 +2,8 @@ import jax
 from jax import numpy as jnp
 import os
 
+_LOCAL_F_COUNT = 0
+
 
 def add(input_var, output_var, params):
     rvalue = " + ".join(input_var)  # 2
@@ -103,7 +105,7 @@ def convert_element_type(input_var, output_var, params):
 
 
 def xla_pmap(input_var, output_var, params):
-    out = ""
+    global _LOCAL_F_COUNT
     # out+="import multiprocessing"
     # out+="pool = multiprocessing.Pool()"
 
@@ -114,23 +116,12 @@ def xla_pmap(input_var, output_var, params):
     _line_return = params["decompiler_line_return"]
     _tab = params["decompiler_tab"]
 
-    # collect input vars
-    local_f_name = "g"
+    # collect input/output vars
+    local_f_name = "local_f" + str(_LOCAL_F_COUNT)
+    _LOCAL_F_COUNT += 1
+
     input_vars = [str(v) for v in params["call_jaxpr"].invars]
-    """"
-    for eqn in params["call_jaxpr"].eqns:
-        for v in eqn.invars:
-            if isinstance(v, jax.core.Var):
-                input_vars.add(str(v))
-    """
-    # collect output vars
-    #output_vars = set([])
-    """
-    for eqn in params["call_jaxpr"].eqns:
-        for v in eqn.outvars:
-            output_vars.add(str(v))
-    """
-    output_vars=[str(v) for v in params["call_jaxpr"].outvars]
+    output_vars = [str(v) for v in params["call_jaxpr"].outvars]
 
     args = ", ".join(input_vars)
     l = f"def {local_f_name}({args}):"
@@ -141,9 +132,7 @@ def xla_pmap(input_var, output_var, params):
     tabbed_l = _tab(l, 1)
     output_local_f_lines = [tabbed_l]
 
-
-
-    # build body of the function
+    # build body of the global function and the local functions
     body_local_f_lines = []
     for eqn in params["call_jaxpr"].eqns:
         python_lambda_body = _line_body(eqn, K, 1)  # 'ex: "    b = a + 1.0"
@@ -153,6 +142,59 @@ def xla_pmap(input_var, output_var, params):
     lvalue = ", ".join(output_var)
     rvalue = ", ".join(input_var)
     l = f"{lvalue} = jax.pmap({local_f_name})({rvalue})"
+    call_local_f_lines = [l]
+
+    # MERGE THE LOCAL FUNCTION CODES AND THE CALL CODE
+    out = (
+        input_local_f_lines
+        + body_local_f_lines
+        + output_local_f_lines
+        + call_local_f_lines
+    )
+
+    return out
+
+
+def xla_call(
+    input_var, output_var, params
+):  # TODO: code factorization is possible between xla_call and xla_pmap
+    global _LOCAL_F_COUNT
+    # out+="import multiprocessing"
+    # out+="pool = multiprocessing.Pool()"
+
+    # Recursive calls
+    K = params["decompiler_K"]
+    _line_body = params["decompiler_line_body"]
+    _line_input = params["decompiler_line_input"]
+    _line_return = params["decompiler_line_return"]
+    _tab = params["decompiler_tab"]
+
+    # collect input/output vars
+    local_f_name = "local_f" + str(_LOCAL_F_COUNT)
+    _LOCAL_F_COUNT += 1
+
+    input_vars = [str(v) for v in params["call_jaxpr"].invars]
+    output_vars = [str(v) for v in params["call_jaxpr"].outvars]
+
+    args = ", ".join(input_vars)
+    l = f"def {local_f_name}({args}):"
+    input_local_f_lines = [l]
+
+    return_vars = ", ".join(list(output_vars))
+    l = f"return {return_vars}"
+    tabbed_l = _tab(l, 1)
+    output_local_f_lines = [tabbed_l]
+
+    # build body of the global function and the local functions
+    body_local_f_lines = []
+    for eqn in params["call_jaxpr"].eqns:
+        python_lambda_body = _line_body(eqn, K, 1)  # 'ex: "    b = a + 1.0"
+        body_local_f_lines.append(python_lambda_body)
+
+    # call line
+    lvalue = ", ".join(output_var)
+    rvalue = ", ".join(input_var)
+    l = f"{lvalue} = {local_f_name}({rvalue})"
     call_local_f_lines = [l]
 
     # MERGE THE LOCAL FUNCTION CODES AND THE CALL CODE
