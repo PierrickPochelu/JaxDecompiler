@@ -7,7 +7,6 @@ DELTA = 0.001
 
 
 class MyTestCase(unittest.TestCase):
-
     def test_lun4m_equation(self):
         import jax.numpy as jnp
         from jax import value_and_grad
@@ -27,7 +26,6 @@ class MyTestCase(unittest.TestCase):
         y_expected = df(*x)
 
         decomp, pycode = decompiler.python_jaxpr_python(df, x, is_python_returned=True)
-        print(pycode)
 
         y = decomp(*x)
 
@@ -59,7 +57,6 @@ class MyTestCase(unittest.TestCase):
         y_expected = df(*x)
 
         decomp, pycode = decompiler.python_jaxpr_python(df, x, is_python_returned=True)
-        print(pycode)
 
         y = decomp(*x)
 

@@ -10,7 +10,7 @@ from os import path, linesep
 
 
 def from_jaxpr_object_to_python(
-        jaxpr_obj, module_name="decompiled_module", dir_path="out", is_python_returned=False
+    jaxpr_obj, module_name="decompiled_module", dir_path="out", is_python_returned=False
 ) -> Union[Callable, Tuple[Callable, str]]:
     """from jaxpr code to python code"""
     python_lines = decompiler(jaxpr_obj)
@@ -25,7 +25,7 @@ def from_jaxpr_object_to_python(
 
 
 def python_jaxpr_python(
-        python_f, moc_inputs, **kwargs
+    python_f, moc_inputs, **kwargs
 ) -> Union[Callable, Tuple[Callable, str]]:
     """Compilation followed by Decompilation allows to check if the decompilation is correct
     We assume Compilation is always correct here.
@@ -104,7 +104,7 @@ def _line_return(jaxpr, tab_level=1) -> str:
 
 
 def decompile_type_convert(
-        v,
+    v,
 ):  # TODO for instance types are partially ignored (default python behaviour)
     """From jaxpr object token to Python string token"""
     """type(v) in {jax.core.Var, jax.core.Literal}."""
@@ -149,7 +149,9 @@ def _line_body(eqn, K, tab_level) -> List[Union[List, str]]:
     if isinstance(lines, str):
         lines = [lines]
 
-    list_python_lines = _tab_recursively(lines, tab_level)  # python_body_line is updated
+    list_python_lines = _tab_recursively(
+        lines, tab_level
+    )  # python_body_line is updated
 
     return list_python_lines
 
@@ -160,7 +162,7 @@ def import_statements(tabbed_python_lines) -> None:
 
 
 def decompiler(
-        jaxpr_obj, starting_tab_level=0, python_func_name="f"
+    jaxpr_obj, starting_tab_level=0, python_func_name="f"
 ) -> List[Union[List, str]]:
     jaxpr_code = jaxpr_obj.jaxpr
     K = get_primitive_mapping()
@@ -190,7 +192,7 @@ def decompiler(
 
 
 def _recursively_write_python_program(
-        file, lines
+    file, lines
 ) -> None:  # warning lines may contains lines
     for line in lines:
         if isinstance(line, list):
@@ -202,7 +204,7 @@ def _recursively_write_python_program(
 
 
 def from_strings_to_callable(
-        python_lines, module_name="decompiled_module", dir_path="out"
+    python_lines, module_name="decompiled_module", dir_path="out"
 ) -> Callable:
     """warning this function create a file named `tmp_file` in the directory `dir_path`"""
 

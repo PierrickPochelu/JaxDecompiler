@@ -16,7 +16,6 @@ class MyTestCase(unittest.TestCase):
         x = array([[1, 2, 3]], dtype=float32)
 
         y_expected = python_f(x)
-        decompiler.display_wrapped_jaxpr(python_f, x)
         decompiled_f = decompiler.python_jaxpr_python(python_f, (x,))
         y = decompiled_f(x)
         gap = sum(y_expected - y)
@@ -36,16 +35,12 @@ class MyTestCase(unittest.TestCase):
             x1 = x + 1
             b, c = jax.pmap(one_input_two_output)(x1)
             y2 = jax.pmap(two_input_one_output)(b, c)
-            y3 = y2 ** 2
+            y3 = y2**2
             return y3
 
         x = array([[1, 2, 3]], dtype=float32)
 
         y_expected = python_f(x)
-
-        print(y_expected)
-
-        decompiler.display_wrapped_jaxpr(python_f, x)
 
         decompiled_f = decompiler.python_jaxpr_python(python_f, (x,))
 

@@ -19,7 +19,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_pow_sqrt(self):
         def python_f(x):
-            return sqrt(x), x ** -0.1, x ** 2
+            return sqrt(x), x**-0.1, x**2
 
         decompiled_df = decompiler.python_jaxpr_python(python_f, (1.0,))
         y = decompiled_df(2.0)
@@ -32,8 +32,6 @@ class MyTestCase(unittest.TestCase):
     def test_trigonometry(self):
         def f(x):
             return cos(x), sin(x), tanh(x), arctan(x), arccos(x), arcsin(x), tanh(x)
-
-        decompiler.display_wrapped_jaxpr(f, (2.1,))
 
         # return
         decompiled_f = decompiler.python_jaxpr_python(f, (0.1,))
@@ -49,8 +47,6 @@ class MyTestCase(unittest.TestCase):
             xint = jax.numpy.array(x, dtype=int32)
             xfloatint = array(xint, dtype=float32)
             return xfloatint
-
-        decompiler.display_wrapped_jaxpr(f, (array([2.1, 3.9]),))
 
         # return
         decompiled_f = decompiler.python_jaxpr_python(f, (0.1,))
