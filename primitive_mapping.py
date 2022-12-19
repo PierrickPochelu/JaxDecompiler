@@ -101,7 +101,7 @@ def copy(input_var, output_var, params):
 
 def convert_element_type(input_var, output_var, params):
     t = params["new_dtype"]
-    return f"{output_var[0]} = {input_var[0]}.astype({t})"
+    return f"{output_var[0]} = array({input_var[0]}).astype({t})"
 
 
 def xla_pmap(input_var, output_var, params):
@@ -146,17 +146,17 @@ def xla_pmap(input_var, output_var, params):
 
     # MERGE THE LOCAL FUNCTION CODES AND THE CALL CODE
     out = (
-        input_local_f_lines
-        + body_local_f_lines
-        + output_local_f_lines
-        + call_local_f_lines
+            input_local_f_lines
+            + body_local_f_lines
+            + output_local_f_lines
+            + call_local_f_lines
     )
 
     return out
 
 
 def xla_call(
-    input_var, output_var, params
+        input_var, output_var, params
 ):  # TODO: code factorization is possible between xla_call and xla_pmap
     global _LOCAL_F_COUNT
     # out+="import multiprocessing"
@@ -199,10 +199,10 @@ def xla_call(
 
     # MERGE THE LOCAL FUNCTION CODES AND THE CALL CODE
     out = (
-        input_local_f_lines
-        + body_local_f_lines
-        + output_local_f_lines
-        + call_local_f_lines
+            input_local_f_lines
+            + body_local_f_lines
+            + output_local_f_lines
+            + call_local_f_lines
     )
 
     return out
