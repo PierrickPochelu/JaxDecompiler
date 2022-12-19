@@ -181,7 +181,6 @@ def decompiler(
     # body of the function
     for eqn in jaxpr_code.eqns:
         list_of_python_lines = _line_body(eqn, K, starting_tab_level + 1)
-        # tabbed_python_lines.append(list_of_python_lines)
         tabbed_python_lines.extend(list_of_python_lines)
 
     # return instruction
