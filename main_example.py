@@ -7,7 +7,7 @@ import jax
 
 def f(x, smooth_rate):
     local_minimums = (1 - smooth_rate) * jax.numpy.cos(x)
-    global_minimum = smooth_rate * x**2
+    global_minimum = smooth_rate * x ** 2
     return global_minimum + local_minimums
 
 

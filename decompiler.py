@@ -67,14 +67,19 @@ def _tab(python_line, tab_level) -> str:
     return tab_prefix + python_line
 
 
-def _tab_recursively(lines, tab_level) -> None:  # lines is I/O
+def _tab_recursively(lines, tab_level) -> List[str]:  # lines is I/O
+    strings = []
     for i, l in enumerate(lines):
         if isinstance(l, str):
-            lines[i] = _tab(l, tab_level)
+            tabbed_str = _tab(l, tab_level)
+            lines[i] = tabbed_str
+            strings.append(tabbed_str)
         elif isinstance(l, list):
-            _tab_recursively(l, tab_level)
+            nested_strings = _tab_recursively(l, tab_level)
+            strings.extend(nested_strings)
         else:
             raise ValueError("Unexpected type in _tab_recursively()")
+    return strings
 
 
 def _line_input(jaxpr, tab_level=0, python_func_name="f") -> str:
@@ -122,23 +127,16 @@ def decompile_type_convert(
 
 def _line_body(eqn, K, tab_level) -> List[Union[List, str]]:
     python_op_name = str(eqn.primitive.name)
-    jaxpr_line = str(eqn)
 
     if python_op_name not in K:
         raise TypeError(f'Instruction: "{python_op_name}" not yet supported')
 
-    # Check if we need it. It is usefull for pmap
-    # if "call_jaxprs" in eqn.params:
+    # Below code is usefull for pmap, more generally if "call_jaxprs" in eqn.params:
     eqn.params["decompiler_line_input"] = _line_input
     eqn.params["decompiler_line_body"] = _line_body
     eqn.params["decompiler_line_return"] = _line_return
     eqn.params["decompiler_K"] = K
     eqn.params["decompiler_tab"] = _tab
-
-    # input_var of the function (function inputs, or variable inside)
-    # lvars, rvars=_lvar_rvar(jaxpr_line)
-    # input_var = [str(var) for var in rvars]
-    # output_var = [str(var) for var in lvars]
 
     # before:
     input_var = [decompile_type_convert(var) for var in eqn.invars]
@@ -146,13 +144,14 @@ def _line_body(eqn, K, tab_level) -> List[Union[List, str]]:
 
     # build the line as string
     python_body_line_builder = K[python_op_name]
-    params = {}
     lines = python_body_line_builder(input_var, output_var, eqn.params)
+    # lines can be a str or a list of [str,list]
     if isinstance(lines, str):
         lines = [lines]
 
-    _tab_recursively(lines, tab_level)  # python_body_line is updated
-    return lines
+    list_python_lines = _tab_recursively(lines, tab_level)  # python_body_line is updated
+
+    return list_python_lines
 
 
 def import_statements(tabbed_python_lines) -> None:

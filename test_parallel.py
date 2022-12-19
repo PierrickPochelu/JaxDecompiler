@@ -7,7 +7,7 @@ DELTA = 0.001
 
 
 class MyTestCase(unittest.TestCase):
-    """
+
     def test_vmap_1line(self):
         def python_f(x):
             g = lambda element: element + 1
@@ -47,10 +47,11 @@ class MyTestCase(unittest.TestCase):
     def test_pmap_2lines(self):
         def python_f(x):
             def g(x):
-                a=x+1
-                b=a*2
+                a = x + 1
+                b = a * 2
                 return b
-            y=jax.pmap(g)(x)
+
+            y = jax.pmap(g)(x)
             return y
 
         x = array([[1, 2, 3]], dtype=float32)
@@ -60,10 +61,8 @@ class MyTestCase(unittest.TestCase):
         y_expected = python_f(x)
         y = decompiled_f(x)
 
-
-        gap = sum(y_expected-y)
+        gap = sum(y_expected - y)
         self.assertAlmostEqual(0., gap, delta=DELTA)
-    """
 
     def test_pmap_nlines(self):
         def python_f(x):
@@ -102,7 +101,7 @@ class MyTestCase(unittest.TestCase):
             x1 = x + 1
             b, c = jax.pmap(one_input_two_output)(x1)
             y2 = jax.pmap(two_input_one_output)(b, c)
-            y3 = y2**2
+            y3 = y2 ** 2
             return y3
 
         x = array([[1, 2, 3]], dtype=float32)

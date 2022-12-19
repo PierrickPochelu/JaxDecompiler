@@ -3,7 +3,6 @@ import jax
 from jax.numpy import *
 import decompiler
 
-
 DELTA = 0.001
 
 

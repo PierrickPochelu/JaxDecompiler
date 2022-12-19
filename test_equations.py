@@ -19,7 +19,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_pow_sqrt(self):
         def python_f(x):
-            return sqrt(x), x**-0.1, x**2
+            return sqrt(x), x ** -0.1, x ** 2
 
         decompiled_df = decompiler.python_jaxpr_python(python_f, (1.0,))
         y = decompiled_df(2.0)
