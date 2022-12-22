@@ -208,6 +208,10 @@ def from_strings_to_callable(
 ) -> Callable:
     """warning this function create a file named `tmp_file` in the directory `dir_path`"""
 
+    # Write folder out/ if not present yet
+    if not os.path.exists(dir_path):
+        os.mkdir(dir_path)
+
     # Write it
     file_path = path.join(dir_path, module_name + ".py")
     with open(file_path, "w") as file:
