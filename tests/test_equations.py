@@ -7,7 +7,16 @@ DELTA = 0.001
 
 
 class MyTestCase(unittest.TestCase):
-    def test_exp(self):
+    def test_neg(self):
+        f = lambda x: -x
+
+        decompiled_df = decompiler.python_jaxpr_python(f, (10.0,))
+        y_produced = decompiled_df(10.0)
+        y_expected = f(10.0)
+
+        self.assertAlmostEqual(y_expected, y_produced)
+
+    def test_log_exp(self):
         f = lambda x: log(1 + exp(x))
         df = jax.grad(f)
 
@@ -31,7 +40,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_trigonometry(self):
         def f(x):
-            return cos(x), sin(x), tanh(x), arctan(x), arccos(x), arcsin(x), tanh(x)
+            return cos(x), sin(x), tanh(x), arctan(x), arccos(x), arcsin(x), tan(x)
 
         # return
         decompiled_f = decompiler.python_jaxpr_python(f, (0.1,))
