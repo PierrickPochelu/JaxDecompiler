@@ -220,12 +220,14 @@ def from_strings_to_callable(
     # Import it
     if dir_path not in sys.path:  # TODO can we do better ? O(n) linear scan
         sys.path.append(dir_path)
+
     # refresh
     if module_name in sys.modules:
+        # https://stackoverflow.com/questions/74891109/write-import-call-same-python-module-multiple-times-runs-outdated-code?noredirect=1#comment132184787_74891109
+        os.remove(sys.modules[module_name].__cached__)  # remove cached bytecode
         del sys.modules[module_name]
-        time.sleep(1)  # TODO: Why is it mandatory ? Urgent patch needed here
+
     module = __import__(module_name)
-    # importlib.reload(importlib.import_module(module_name))
 
     callable_f = module.f
 
