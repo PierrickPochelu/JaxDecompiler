@@ -38,10 +38,10 @@ def _recurive_op(params, python_call, local_f_name):
 
     # MERGE THE LOCAL FUNCTION CODES AND THE CALL CODE
     out = (
-        input_local_f_lines
-        + body_local_f_lines
-        + output_local_f_lines
-        + call_local_f_lines
+            input_local_f_lines
+            + body_local_f_lines
+            + output_local_f_lines
+            + call_local_f_lines
     )
 
     return out
@@ -171,11 +171,34 @@ def reshape(input_var, output_var, params):
 
 
 def gather(input_var, output_var, params):
-    # np.take_along_axis(a, ai, axis=1)
-    rvalue = ", ".join(input_var)
+    arr = input_var[0]
+
+    start_indices = input_var[1]  # ex: [0,0]
+    slice_sizes = list(params["slice_sizes"])  # [1,1,7]
+
+    # while(len(start_indices) < len(slice_sizes)):
+    #    start_indices.append(0)
+
+    slicing_code = "["
+    d = 0
+    for end in slice_sizes:
+        start = f"{start_indices}[{d}]"
+        dim_slice = f"{start} if len({start_indices})>{d} else 0:{start}+{end},"
+        slicing_code += dim_slice
+        d += 1
+    slicing_code = slicing_code[:-1]
+    slicing_code += "]"
+
     dim_num_obj = params["dimension_numbers"]
-    dims = dim_num_obj.collapsed_slice_dims[0]
-    return f"{output_var[0]} = take_along_axis({input_var[0]}, {input_var[1]}, {dims})"
+    collapsed_dims = dim_num_obj.collapsed_slice_dims
+
+    return f"{output_var[0]} = squeeze( {arr}{slicing_code} , axis={collapsed_dims})"
+
+
+def concatenate(input_var, output_var, params):
+    dim = params["dimension"]
+    rvalue = ", ".join(input_var)
+    return f"{output_var[0]} = concatenate(({rvalue}), axis={dim})"
 
 
 def squeeze(input_var, output_var, params):
@@ -217,10 +240,6 @@ def select_n(input_var, output_var, params):
     condlist = f"[{pred},invert({pred})]"
     choicelist = f"[{on_true},{on_false}]"
     line = f"{output_var[0]} = select({condlist}, {choicelist})"
-    # condlist=f"repeat({on_true},len({on_true})//len({pred}))"
-    # choicelist=f"{pred}"
-    # default=f"repeat({on_false},len({on_false})//len({pred}))"
-    # line=f"{output_var[0]} = select({condlist}, {choicelist},  {default})"
     return line
 
 
@@ -274,3 +293,13 @@ def xla_call(input_var, output_var, params) -> List[Union[List, str]]:
 
     lines = _recurive_op(params, l, local_f_name)
     return lines
+
+
+def rev(input_var, output_var, params):
+    axis = params["dimensions"]
+    return f"{output_var[0]} = flip({input_var[0]},axis={axis})"
+
+
+def conv_general_dilated(input_var, output_var, params):
+    shape = params["lhs_shape"]
+    return f"{output_var[0]} = convolve(squeeze({input_var[0]}), squeeze({input_var[1]}), mode='same').reshape({shape})"

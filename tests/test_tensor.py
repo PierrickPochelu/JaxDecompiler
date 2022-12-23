@@ -3,11 +3,11 @@ import jax
 from jax.numpy import *
 import decompiler
 
-
 DELTA = 0.001
 
 
 class MyTestCase(unittest.TestCase):
+
     def test_add_tensors(self):
         def python_f(x):
             return x + array([[-1, 0, -1.1], [0, -1, 0], [0, 0, 0]], dtype=float32)
@@ -101,6 +101,22 @@ class MyTestCase(unittest.TestCase):
 
         y = decompiled_f(x)
         y_expected = python_f(x)
+
+        gap = sum(array(y_expected) - array(y))
+        self.assertAlmostEqual(0.0, gap, delta=DELTA)
+
+    def test_conv_1D(self):
+        def python_f(x):
+            k = array([1., 1., 1.])
+            return convolve(x, k, mode="same")
+
+        x = array([0, 1, 0, 1, 0, 0, 0], dtype=float32)
+
+        y_expected = python_f(x)
+
+        decompiled_f = decompiler.python_jaxpr_python(python_f, (x,))
+
+        y = decompiled_f(x)
 
         gap = sum(array(y_expected) - array(y))
         self.assertAlmostEqual(0.0, gap, delta=DELTA)
