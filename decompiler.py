@@ -8,6 +8,11 @@ import jax
 from jax import numpy as jnp
 from os import path, linesep
 
+FORBIDDEN_VAR_NAMES={"id", "if", "in", "or", "is", "def", "for", "set"}
+def filter_var_name(var_name): # all jaxpr vars should be given to this function
+    if var_name in FORBIDDEN_VAR_NAMES:
+        return var_name.upper()
+    return var_name
 
 def from_jaxpr_object_to_python(
     jaxpr_obj, module_name="decompiled_module", dir_path="out", is_python_returned=False
@@ -81,11 +86,20 @@ def _tab_recursively(lines, tab_level) -> List[str]:  # lines is I/O
             raise ValueError("Unexpected type in _tab_recursively()")
     return strings
 
+def _lines_constant(jaxpr_constvars, jaxpr_literals, tab_level)->List[str]:
+    list_python_lines=[]
+    for var_name, var_val in zip(jaxpr_constvars, jaxpr_literals):
+        var_name=filter_var_name(str(var_name))
+        var_val_literal = repr(var_val)  # from jaxpr object to string literal
+        line=f"{var_name} = {var_val_literal}"
+        tabbed_line = _tab(line, tab_level )
+        list_python_lines.append(tabbed_line)
+    return list_python_lines
 
 def _line_input(jaxpr, tab_level=0, python_func_name="f") -> str:
     if not hasattr(jaxpr, "invars"):
         return "def f():"
-    str_input = [str(var) for var in jaxpr.invars]
+    str_input = [filter_var_name(str(var)) for var in jaxpr.invars]
     args = ", ".join(str_input)
     python_body_line = f"def {python_func_name}({args}):"
     line = _tab(python_body_line, tab_level)
@@ -96,33 +110,11 @@ def _line_return(jaxpr, tab_level=1) -> str:
     if not hasattr(jaxpr, "outvars"):
         python_body_line = "pass #no output"
     else:
-        str_output = [str(var) for var in jaxpr.outvars]
+        str_output = [filter_var_name(str(var)) for var in jaxpr.outvars]
         args = ", ".join(str_output)
         python_body_line = f"return {args}"
     line = _tab(python_body_line, tab_level)
     return line
-
-
-def decompile_type_convert(
-    v,
-):  # TODO for instance types are partially ignored (default python behaviour)
-    """From jaxpr object token to Python string token"""
-    """type(v) in {jax.core.Var, jax.core.Literal}."""
-
-    if isinstance(v, jax.core.Literal):
-        internal_type = v.aval.dtype
-        dimensions = v.aval.ndim
-        shape = v.aval.shape
-        v2 = str(v)
-    elif isinstance(v, jax.core.Var):
-        internal_type = v.aval.dtype
-        dimensions = v.aval.ndim
-        shape = v.aval.shape
-        v2 = str(v)
-    else:
-        print(f"WARNING jaxpr token type not understood: {type(v)}")
-        v2 = str(v)
-    return v2
 
 
 def _line_body(eqn, K, tab_level) -> List[Union[List, str]]:
@@ -138,9 +130,9 @@ def _line_body(eqn, K, tab_level) -> List[Union[List, str]]:
     eqn.params["decompiler_K"] = K
     eqn.params["decompiler_tab"] = _tab
 
-    # before:
-    input_var = [decompile_type_convert(var) for var in eqn.invars]
-    output_var = [decompile_type_convert(var) for var in eqn.outvars]
+    # process var names
+    input_var = [filter_var_name(str(var)) for var in eqn.invars]
+    output_var = [filter_var_name(str(var)) for var in eqn.outvars]
 
     # build the line as string
     python_body_line_builder = K[python_op_name]
@@ -174,10 +166,8 @@ def decompiler(
     tabbed_python_lines.append(p)
 
     # Constants
-    for var_name, var_val in zip(jaxpr_code.constvars, jaxpr_obj.literals):
-        var_val_literal = repr(var_val)  # from jaxpr object to string literal
-        p = _tab(f"{var_name} = {var_val_literal}", starting_tab_level + 1)
-        tabbed_python_lines.append(p)
+    l = _lines_constant(jaxpr_code.constvars, jaxpr_obj.literals, starting_tab_level + 1)
+    tabbed_python_lines.extend(l)
 
     # body of the function
     for eqn in jaxpr_code.eqns:
@@ -206,7 +196,7 @@ def _recursively_write_python_program(
 def from_strings_to_callable(
     python_lines, module_name="decompiled_module", dir_path="out"
 ) -> Callable:
-    """warning this function create a file named `tmp_file` in the directory `dir_path`"""
+    """warning this function create a file named "`module_name`.py" in the directory `dir_path`"""
 
     # Write folder out/ if not present yet
     if not os.path.exists(dir_path):
@@ -218,7 +208,7 @@ def from_strings_to_callable(
         _recursively_write_python_program(file, python_lines)
 
     # Import it
-    if dir_path not in sys.path:  # TODO can we do better ? O(n) linear scan
+    if dir_path not in sys.path:
         sys.path.append(dir_path)
 
     # refresh
