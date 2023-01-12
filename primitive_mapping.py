@@ -303,3 +303,32 @@ def rev(input_var, output_var, params):
 def conv_general_dilated(input_var, output_var, params):
     shape = params["lhs_shape"]
     return f"{output_var[0]} = convolve(squeeze({input_var[0]}), squeeze({input_var[1]}), mode='same').reshape({shape})"
+
+
+def dynamic_slice(input_var, output_var, params):  # TODO: unit test
+    a, b = input_var
+    ss = params["slice_sizes"]
+    return f"{output_var[0]} = {a}[{b}:{b}+{ss}]"
+
+
+def slice(input_var, output_var, params):  # TODO: unit test
+    start = params['start_indices']
+    limit = params['limit_indices']
+    strides = params['strides']
+    print("input_var:", input_var)
+    print("output_var:", output_var)
+    if strides is None:
+        return f"{output_var[0]} = {input_var[0]}[{start}:{limit}]"
+    else:
+        return f"{output_var[0]} = {input_var[0]}[{start}:{limit}:{strides}]"
+
+
+def dynamic_update_slice(input_var, output_var, params):  # TODO: unit test
+    print("dynamic_update_slice:")
+    a, b, c = input_var
+    return f"{output_var[0]} = {a}[{b}:{b}+{c}]"
+
+
+def scatter_add(input_var, output_var, params):  # TODO: unit test
+    a,b,c=input_var
+    return f"{output_var[0]} = add.ad({a}, {b}, {c})"
