@@ -13,10 +13,11 @@ def _recurive_op(params, python_call, local_f_name):
     _line_input = params["decompiler_line_input"]
     _line_return = params["decompiler_line_return"]
     _tab = params["decompiler_tab"]
+    filter_var_name = params["decompiler_filter_var_name"]
 
     # collect input/output vars
-    input_vars = [str(v) for v in params["call_jaxpr"].invars]
-    output_vars = [str(v) for v in params["call_jaxpr"].outvars]
+    input_vars = [filter_var_name(str(v)) for v in params["call_jaxpr"].invars]
+    output_vars = [filter_var_name(str(v)) for v in params["call_jaxpr"].outvars]
 
     args = ", ".join(input_vars)
     l = f"def {local_f_name}({args}):"
@@ -308,27 +309,62 @@ def conv_general_dilated(input_var, output_var, params):
 def dynamic_slice(input_var, output_var, params):  # TODO: unit test
     a, b = input_var
     ss = params["slice_sizes"]
-    return f"{output_var[0]} = {a}[{b}:{b}+{ss}]"
+    return f"{output_var[0]} = {a}[{b}:{b}+{ss}[0]] # dynamic slice"
 
 
 def slice(input_var, output_var, params):  # TODO: unit test
-    start = params['start_indices']
+    start = params['start_indices']  # e.g. "(1, 2)", "(0, )", "a"
     limit = params['limit_indices']
     strides = params['strides']
-    print("input_var:", input_var)
-    print("output_var:", output_var)
-    if strides is None:
-        return f"{output_var[0]} = {input_var[0]}[{start}:{limit}]"
-    else:
-        return f"{output_var[0]} = {input_var[0]}[{start}:{limit}:{strides}]"
+
+    # Example 1: ["(1, 2)", "(3, 4)", "(5, 6)"] -> we want "[1:3:5][2:4:6]"
+    # Example 2: ["(1, 2)", "(3, 4)", None] -> we want "[1:3:][2:4:]"
+    inputs = [start, limit, strides]
+
+    # splits:
+    # Example 1: ["(1, 2)", "(3, 4)", "(5, 6)"] -> [['1','3','5']['2','4','6']]
+    # Example 2: ["(1, 2)", "(3, 4)"] -> [['1','2']['3','4'],[]]
+    splitted_inputs = []
+    for i, v in enumerate(inputs):
+        if v is not None:
+            v = str(v)
+            for symbol in ["(", ")", " "]:
+                v = v.replace(symbol, "")
+            v_splited = v.split(",")
+            if v_splited[-1]=="": #(1,) -> ["1"] not ["1", ""]
+                v_splited.pop(-1)
+            splitted_inputs.append(v_splited)
+        else:
+            splitted_inputs.append([])
+
+    # balancing dimension insructions:
+    # Example: [['1','2']['3','4'],[]] -> [['1','2']['3','4'],['','']]
+    max_depth = max([len(v) for v in splitted_inputs])
+    balanced_splitted_inputs = []
+    for v in splitted_inputs:
+        balanced_v = v[:]
+        for i in range(len(balanced_v), max_depth):
+            balanced_v.append("")
+        balanced_splitted_inputs.append(balanced_v)
+
+    # create slicing
+    # [['1', '2']['3', '4'], ['', '']] -> "[1:3:][2:4:]"
+    slicing_code = []
+    for i in range(max_depth):
+        slicing_code.append("[")
+        dim_info = [v[i] for v in balanced_splitted_inputs]
+        slicing_code.append(":".join(dim_info))
+        slicing_code.append("]")
+    slicing_code = "".join(slicing_code)
+
+    return f"{output_var[0]} = {input_var[0]}{slicing_code} if len({input_var[0]}.shape)>={max_depth} else {input_var[0]} # static slice inputs:{inputs}"
 
 
 def dynamic_update_slice(input_var, output_var, params):  # TODO: unit test
-    print("dynamic_update_slice:")
     a, b, c = input_var
-    return f"{output_var[0]} = {a}[{b}:{b}+{c}]"
+    return f"{output_var[0]} = concatenate([ {b}[:{c}] , {a}]) # dynamic update slice"
 
 
 def scatter_add(input_var, output_var, params):  # TODO: unit test
-    a,b,c=input_var
+    a, b, c = input_var
     return f"{output_var[0]} = add.ad({a}, {b}, {c})"

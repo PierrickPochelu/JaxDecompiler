@@ -8,8 +8,13 @@ import jax
 from jax import numpy as jnp
 from os import path, linesep
 
-FORBIDDEN_VAR_NAMES={"id", "if", "in", "or", "is", "def", "for", "set"}
-def filter_var_name(var_name): # all jaxpr vars should be given to this function
+# Keep the alphabetical order below for readability purpose.
+FORBIDDEN_VAR_NAMES={"id", "if", "in", "or", "is", "def", "del", "for", "not", "set", "try", "elif", "else", "from"}
+def filter_var_name(var_name):
+    """
+    All jaxpr vars should be given to this function
+    Automatic variable names are: a, b, c, ... y, z, aa, ab, ac, ... ic, ID, ie, IF, ig ...
+    """
     if var_name in FORBIDDEN_VAR_NAMES:
         return var_name.upper()
     return var_name
@@ -118,7 +123,8 @@ def _line_return(jaxpr, tab_level=1) -> str:
 
 
 def _line_body(eqn, K, tab_level) -> List[Union[List, str]]:
-    python_op_name = str(eqn.primitive.name)
+    jaxpr_op_name = str(eqn.primitive.name)
+    python_op_name=jaxpr_op_name.replace("-","_") #e.g., "scatter-add" become "scatter_add"
 
     if python_op_name not in K:
         raise TypeError(f'Instruction: "{python_op_name}" not yet supported')
@@ -129,6 +135,7 @@ def _line_body(eqn, K, tab_level) -> List[Union[List, str]]:
     eqn.params["decompiler_line_return"] = _line_return
     eqn.params["decompiler_K"] = K
     eqn.params["decompiler_tab"] = _tab
+    eqn.params["decompiler_filter_var_name"] = filter_var_name
 
     # process var names
     input_var = [filter_var_name(str(var)) for var in eqn.invars]
