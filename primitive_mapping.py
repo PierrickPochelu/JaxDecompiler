@@ -195,6 +195,42 @@ def gather(input_var, output_var, params):
 
     return f"{output_var[0]} = squeeze( {arr}{slicing_code} , axis={collapsed_dims})"
 
+def random_seed(input_var, output_var, params):
+    #return f"{output_var[0]} = random.seed({input_var[0]})"
+    impl_obj=params["impl"]
+    PRNG_IMPLS = {
+        'threefry2x32': "prng.threefry_prng_impl",
+        'rbg': "prng.rbg_prng_impl",
+        'unsafe_rbg': "prng.unsafe_rbg_prng_impl",
+        "fry":  "prng.threefry_prng_impl",
+    }
+    impl=PRNG_IMPLS[impl_obj.tag]
+    return f"{output_var[0]} = jax.random.PRNGKeyArray(key_data=jax.random.PRNGKey({input_var[0]}),impl={impl})"
+
+def random_unwrap(input_var, output_var, params):
+    #return f"{output_var[0]} = {input_var[0]}.unwrap()"
+    return f"{output_var[0]} = prng.random_unwrap({input_var[0]})"
+def random_wrap(input_var, output_var, params):
+    impl_obj=params["impl"]
+    PRNG_IMPLS = {
+        'threefry2x32': "prng.threefry_prng_impl",
+        'rbg': "prng.rbg_prng_impl",
+        'unsafe_rbg': "prng.unsafe_rbg_prng_impl",
+        "fry":  "prng.threefry_prng_impl",
+    }
+    impl=PRNG_IMPLS[impl_obj.tag]
+
+    return f"{output_var[0]} = prng.random_wrap({input_var[0]}, impl={impl})"
+
+def random_bits(input_var, output_var, params):
+    options=f"bit_width={params['bit_width']}, shape={params['shape']}"
+    return f"{output_var[0]} = prng.random_bits({input_var[0]}, {options})"
+
+def shift_right_logical(input_var, output_var, params):
+    return f"{output_var[0]} = right_shift({input_var[0]}, {input_var[1]})"
+
+def shift_left_logical(input_var, output_var, params):
+    return f"{output_var[0]} = left_shift({input_var[0]}, {input_var[1]})"
 
 def concatenate(input_var, output_var, params):
     dim = params["dimension"]
@@ -213,14 +249,20 @@ def argmin(input_var, output_var, params):
 def argmax(input_var, output_var, params):
     return f"{output_var[0]} = argmax({input_var[0]})"
 
+def min(input_var, output_var, params):
+    return f"{output_var[0]} = array([min({input_var[0]})])"
 
 def reduce_min(input_var, output_var, params):
     return f"{output_var[0]} = min({input_var[0]})"
 
+def max(input_var, output_var, params):
+    return f"{output_var[0]} = array([max({input_var[0]})])"
 
 def reduce_max(input_var, output_var, params):
     return f"{output_var[0]} = max({input_var[0]})"
 
+def abs(input_var, output_var, params):
+    return f"{output_var[0]} = abs({input_var[0]})"
 
 def reduce_sum(input_var, output_var, params):
     return f"{output_var[0]} = sum({input_var[0]})"
@@ -368,3 +410,19 @@ def dynamic_update_slice(input_var, output_var, params):  # TODO: unit test
 def scatter_add(input_var, output_var, params):  # TODO: unit test
     a, b, c = input_var
     return f"{output_var[0]} = add.ad({a}, {b}, {c})"
+
+def or__(input_var, output_var, params):
+    a, b = input_var
+    return f"{output_var[0]} = {a} | {b}"
+
+def and__(input_var, output_var, params):
+    a, b = input_var
+    return f"{output_var[0]} = {a} & {b}"
+
+def bitcast_convert_type(input_var, output_var, params):
+    dt=params["new_dtype"]
+    return f"{output_var[0]} = jax.lax.bitcast_convert_type({input_var[0]}, new_dtype={dt})"
+
+def erf_inv(input_var, output_var, params):
+    return f"{output_var[0]} = jax.lax.erf_inv({input_var[0]})"
+

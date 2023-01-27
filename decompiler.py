@@ -9,13 +9,14 @@ from jax import numpy as jnp
 from os import path, linesep
 
 # Keep the alphabetical order below for readability purpose.
-FORBIDDEN_VAR_NAMES={"id", "if", "in", "or", "is", "def", "del", "for", "not", "set", "try", "elif", "else", "from"}
+PYTHON_KEY_WORDS={"id", "if", "in", "or", "is", "def", "del", "for", "not", "set", "try", "elif", "else", "from"}
+
 def filter_var_name(var_name):
     """
     All jaxpr vars should be given to this function
     Automatic variable names are: a, b, c, ... y, z, aa, ab, ac, ... ic, ID, ie, IF, ig ...
     """
-    if var_name in FORBIDDEN_VAR_NAMES:
+    if var_name in PYTHON_KEY_WORDS:
         return var_name.upper()
     return var_name
 
@@ -124,7 +125,12 @@ def _line_return(jaxpr, tab_level=1) -> str:
 
 def _line_body(eqn, K, tab_level) -> List[Union[List, str]]:
     jaxpr_op_name = str(eqn.primitive.name)
-    python_op_name=jaxpr_op_name.replace("-","_") #e.g., "scatter-add" become "scatter_add"
+
+    # Due to some python naming constraints, we create some exceptions to the mapping
+    # jaxpr function name -> python function name
+    python_op_name=jaxpr_op_name.replace("-","_") #e.g., jaxpr "scatter-add" become python "scatter_add"
+    if python_op_name in PYTHON_KEY_WORDS:
+        python_op_name = python_op_name+"__" #e.g., jaxpr "or" become python "or__"
 
     if python_op_name not in K:
         raise TypeError(f'Instruction: "{python_op_name}" not yet supported')
@@ -158,7 +164,7 @@ def _line_body(eqn, K, tab_level) -> List[Union[List, str]]:
 def import_statements(tabbed_python_lines) -> None:
     tabbed_python_lines.append("import jax")
     tabbed_python_lines.append("from jax.numpy import *")
-
+    tabbed_python_lines.append("from jax._src import prng")
 
 def decompiler(
     jaxpr_obj, starting_tab_level=0, python_func_name="f"
