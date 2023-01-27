@@ -426,3 +426,5 @@ def bitcast_convert_type(input_var, output_var, params):
 def erf_inv(input_var, output_var, params):
     return f"{output_var[0]} = jax.lax.erf_inv({input_var[0]})"
 
+def stop_gradient(input_var, output_var, params):
+    return f"{output_var[0]} = {input_var[0]} # stop grad"

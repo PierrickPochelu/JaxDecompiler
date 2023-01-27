@@ -29,7 +29,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_pow_sqrt(self):
         def python_f(x):
-            return sqrt(x), x**-0.1, x**2
+            return sqrt(x), x ** -0.1, x ** 2
 
         decompiled_df = decompiler.python_jaxpr_python(python_f, (1.0,))
         y = decompiled_df(2.0)
@@ -69,7 +69,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_non_derivable(self):
         def f(x):
-            return max(array((x,0))), min(array((x,0))), round(x), ceil(x), floor(x), abs(x)
+            return max(array((x, 0))), min(array((x, 0))), round(x), ceil(x), floor(x), abs(x)
 
         # return
         decompiled_f = decompiler.python_jaxpr_python(f, (0.1,))
@@ -82,12 +82,13 @@ class MyTestCase(unittest.TestCase):
 
     def test_gaussian_noise(self):
         def f(x):
-            random_seed=1
-            key=jax.random.PRNGKey(random_seed)
+            random_seed = 1
+            key = jax.random.PRNGKey(random_seed)
 
-            std=0.0001
+            std = 0.0001
             gaussian_noise = jax.random.normal(shape=(1,), key=key, dtype=float32)[0] * std
-            return x+gaussian_noise
+            return x + gaussian_noise
+
         # return
         decompiled_f = decompiler.python_jaxpr_python(f, (0.1,))
         y_expected = f(0.2)
@@ -98,14 +99,14 @@ class MyTestCase(unittest.TestCase):
 
     def test_uniform_noise(self):
         def f(x):
-            random_seed=1
-            key=jax.random.PRNGKey(random_seed)
+            random_seed = 1
+            key = jax.random.PRNGKey(random_seed)
 
-            interval=0.0001
+            interval = 0.0001
             uniform_noise = jax.random.uniform(
-                shape=(1,), key=key, dtype=float32, minval=-1*interval, maxval=interval)[0]
+                shape=(1,), key=key, dtype=float32, minval=-1 * interval, maxval=interval)[0]
 
-            return x+uniform_noise
+            return x + uniform_noise
 
         decompiled_f = decompiler.python_jaxpr_python(f, (0.1,))
 
@@ -114,6 +115,39 @@ class MyTestCase(unittest.TestCase):
         gap = sum(array(y_expected) - array(y))
 
         self.assertAlmostEqual(0.0, gap, delta=DELTA)
+
+    def test_no_gradient(self):
+        def forward(x):
+            return round(x)
+
+        decompiled_f = decompiler.python_jaxpr_python(forward, (0.1,))
+
+        # FORWARD
+        y_expected = forward(0.2)
+        y = decompiled_f(0.2)
+        gap = sum(array(y_expected) - array(y))
+        self.assertAlmostEqual(0.0, gap, delta=DELTA)
+
+        # NAIVE BACKWARD
+        backward = jax.grad(forward)
+        decompiled_b = decompiler.python_jaxpr_python(backward, (0.1,))
+        y_expected = backward(0.2)
+        y = decompiled_b(0.2)
+        gap = sum(array(y_expected) - array(y))
+        self.assertAlmostEqual(0.0, gap, delta=DELTA)
+
+        # CORRECTED BACKWARD USING NO_GRADS
+        def no_grad_f(x):
+            zero = x - jax.lax.stop_gradient(x)
+            return zero + jax.lax.stop_gradient(forward(x))
+
+        no_grad_b = jax.grad(no_grad_f)
+        decompiled_no_grad_b = decompiler.python_jaxpr_python(no_grad_b, (0.1,))
+        y_expected = no_grad_b(0.2)
+        y = decompiled_no_grad_b(0.2)
+        gap = sum(array(y_expected) - array(y))
+        self.assertAlmostEqual(0.0, gap, delta=DELTA)
+
 
 if __name__ == "__main__":
     unittest.main()
