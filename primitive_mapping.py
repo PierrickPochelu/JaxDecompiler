@@ -1,10 +1,7 @@
 from typing import *
-import jax
-from jax import numpy as jnp
-import os
+import builtins
 
 _LOCAL_F_COUNT = 0
-
 
 def _recurive_op(params, python_call, local_f_name):
     # Recursive calls
@@ -193,7 +190,7 @@ def gather(input_var, output_var, params):
     dim_num_obj = params["dimension_numbers"]
     collapsed_dims = dim_num_obj.collapsed_slice_dims
 
-    return f"{output_var[0]} = squeeze( {arr}{slicing_code} , axis={collapsed_dims})"
+    return f"{output_var[0]} = squeeze( array({arr}{slicing_code}) , axis={collapsed_dims})"
 
 def random_seed(input_var, output_var, params):
     #return f"{output_var[0]} = random.seed({input_var[0]})"
@@ -239,7 +236,7 @@ def concatenate(input_var, output_var, params):
 
 
 def squeeze(input_var, output_var, params):
-    return f"{output_var[0]} = squeeze({input_var[0]})"
+    return f"{output_var[0]} = squeeze(array({input_var[0]}))"
 
 
 def argmin(input_var, output_var, params):
@@ -263,6 +260,9 @@ def reduce_max(input_var, output_var, params):
 
 def abs(input_var, output_var, params):
     return f"{output_var[0]} = abs({input_var[0]})"
+
+def sign(input_var, output_var, params):
+    return f"{output_var[0]} = sign({input_var[0]})"
 
 def reduce_sum(input_var, output_var, params):
     return f"{output_var[0]} = sum({input_var[0]})"
@@ -295,6 +295,19 @@ def eq(input_var, output_var, params):  # element wise not equal
     rvalue = "==".join(input_var)
     return f"{output_var[0]} = {rvalue}"
 
+def ge(input_var, output_var, params):
+    rvalue = ">=".join(input_var)
+    return f"{output_var[0]} = {rvalue}"
+def gt(input_var, output_var, params):
+    rvalue = ">=".join(input_var)
+    return f"{output_var[0]} = {rvalue}"
+def le(input_var, output_var, params):
+    rvalue = "<=".join(input_var)
+    return f"{output_var[0]} = {rvalue}"
+
+def lt(input_var, output_var, params):
+    rvalue = "<=".join(input_var)
+    return f"{output_var[0]} = {rvalue}"
 
 def sort(input_var, output_var, params):
     rvalue = ", ".join(input_var)
@@ -381,7 +394,7 @@ def slice(input_var, output_var, params):  # TODO: unit test
 
     # balancing dimension insructions:
     # Example: [['1','2']['3','4'],[]] -> [['1','2']['3','4'],['','']]
-    max_depth = max([len(v) for v in splitted_inputs])
+    max_depth = builtins.max([len(v) for v in splitted_inputs])
     balanced_splitted_inputs = []
     for v in splitted_inputs:
         balanced_v = v[:]

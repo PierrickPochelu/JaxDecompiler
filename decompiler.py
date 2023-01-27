@@ -97,6 +97,7 @@ def _lines_constant(jaxpr_constvars, jaxpr_literals, tab_level)->List[str]:
     for var_name, var_val in zip(jaxpr_constvars, jaxpr_literals):
         var_name=filter_var_name(str(var_name))
         var_val_literal = repr(var_val)  # from jaxpr object to string literal
+        var_val_literal=var_val_literal.replace("Array", "array")
         line=f"{var_name} = {var_val_literal}"
         tabbed_line = _tab(line, tab_level )
         list_python_lines.append(tabbed_line)
