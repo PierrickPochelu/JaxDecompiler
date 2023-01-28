@@ -121,6 +121,27 @@ class MyTestCase(unittest.TestCase):
         gap = sum(array(y_expected) - array(y))
         self.assertAlmostEqual(0.0, gap, delta=DELTA)
 
+    def test_dynamic_slicing(self):
+        # this function will use dynamic_slicing jaxpr operator
+        def f(X, w):
+            return array([w])**2 + X
+ 
+        w=0.1
+        X=array([0.7])
+
+        def circuit_to_opt(x,w):
+            y_=f(x,w)
+            return y_[0]
+
+        deriv_circuit_to_opt = jax.grad(circuit_to_opt, argnums=(-1,))
+
+        deriv_circuit_to_opt_reconstructed = decompiler.python_jaxpr_python(deriv_circuit_to_opt, (X, w))
+
+        dw_expected=deriv_circuit_to_opt(X,w)
+        dw=deriv_circuit_to_opt_reconstructed(X,w)
+
+        gap = sum(array(dw_expected) - array(dw))
+        self.assertAlmostEqual(0.0, gap, delta=DELTA)
 
 if __name__ == "__main__":
     unittest.main()

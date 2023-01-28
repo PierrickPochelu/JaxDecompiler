@@ -417,7 +417,7 @@ def slice(input_var, output_var, params):  # TODO: unit test
 
 def dynamic_update_slice(input_var, output_var, params):  # TODO: unit test
     a, b, c = input_var
-    return f"{output_var[0]} = concatenate([ {b}[:{c}] , {a}]) # dynamic update slice"
+    return f"{output_var[0]} = concatenate([ {b}[{c}:] , {a}]) # dynamic update slice"
 
 
 def scatter_add(input_var, output_var, params):  # TODO: unit test
