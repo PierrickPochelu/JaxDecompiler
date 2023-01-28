@@ -364,8 +364,8 @@ def conv_general_dilated(input_var, output_var, params):
 def dynamic_slice(input_var, output_var, params):  # TODO: unit test
     a, b = input_var
     ss = params["slice_sizes"]
-    return f"{output_var[0]} = {a}[{b}:{b}+{ss}[0]] # dynamic slice"
-
+    #return f"{output_var[0]} = {a}[{b}:{b}+{ss}[0]] # dynamic slice"
+    return f"{output_var[0]} = jax.lax.dynamic_slice_in_dim({a}, {b}, {ss}[0], axis=0)"
 
 def slice(input_var, output_var, params):  # TODO: unit test
     start = params['start_indices']  # e.g. "(1, 2)", "(0, )", "a"
@@ -417,8 +417,8 @@ def slice(input_var, output_var, params):  # TODO: unit test
 
 def dynamic_update_slice(input_var, output_var, params):  # TODO: unit test
     a, b, c = input_var
-    return f"{output_var[0]} = concatenate([ {b}[{c}:] , {a}]) # dynamic update slice"
-
+    #return f"{output_var[0]} = concatenate([ {b}[{c}:] , {a}]) # dynamic update slice"
+    return f"{output_var[0]} = jax.lax.dynamic_update_slice({a}, {b}, ({c},))"
 
 def scatter_add(input_var, output_var, params):  # TODO: unit test
     a, b, c = input_var
