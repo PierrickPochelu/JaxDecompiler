@@ -1,7 +1,7 @@
 import unittest
 import jax
 from jax.numpy import *
-from src import decompiler
+from src.JaxDecompiler import decompiler
 
 DELTA = 0.001
 
@@ -11,7 +11,6 @@ class MyTestCase(unittest.TestCase):
     def test_lun4m_equation(self):
         import jax.numpy as jnp
         from jax import value_and_grad
-        import decompiler
 
         def fun(ra, rb, r0, k):
             rab = ra - rb
@@ -39,7 +38,6 @@ class MyTestCase(unittest.TestCase):
     def test_lun4m_equation_jit(self):
         import jax.numpy as jnp
         from jax import value_and_grad
-        import decompiler
 
         @jax.jit
         def fun(ra, rb, r0, k):

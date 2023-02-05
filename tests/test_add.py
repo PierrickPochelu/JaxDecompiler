@@ -1,11 +1,11 @@
 import unittest
-from src import decompiler
+from src.JaxDecompiler import decompiler
 
 
 class MyTestCase(unittest.TestCase):
     def test_from_strings_to_callable(self):
         lines = ["def f(x):", "    return x+1"]
-        python_f = decompiler.from_strings_to_callable(lines)
+        python_f = decompiler._from_strings_to_callable(lines)
         y = python_f(10)
         self.assertEqual(11, y)
 

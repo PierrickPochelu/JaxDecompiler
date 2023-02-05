@@ -5,24 +5,16 @@ import jax
 from os import path
 
 # Keep the alphabetical order below for readability purpose.
-PYTHON_KEY_WORDS={"id", "if", "in", "or", "is", "def", "del", "for", "not", "set", "try", "elif", "else", "from"}
+PYTHON_KEY_WORDS = {"id", "if", "in", "or", "is", "def", "del", "for", "not", "set", "try", "elif", "else", "from"}
 
-def filter_var_name(var_name):
-    """
-    All jaxpr vars should be given to this function
-    Automatic variable names are: a, b, c, ... y, z, aa, ab, ac, ... ic, ID, ie, IF, ig ...
-    """
-    if var_name in PYTHON_KEY_WORDS:
-        return var_name.upper()
-    return var_name
 
 def from_jaxpr_object_to_python(
-    jaxpr_obj, module_name="decompiled_module", dir_path="out", is_python_returned=False
+        jaxpr_obj, module_name="decompiled_module", dir_path="out", is_python_returned=False
 ) -> Union[Callable, Tuple[Callable, str]]:
     """from jaxpr code to python code"""
     python_lines = decompiler(jaxpr_obj)
 
-    f = from_strings_to_callable(
+    f = _from_strings_to_callable(
         python_lines, module_name=module_name, dir_path=dir_path
     )
     if is_python_returned:
@@ -32,7 +24,7 @@ def from_jaxpr_object_to_python(
 
 
 def python_jaxpr_python(
-    python_f, moc_inputs, **kwargs
+        python_f, moc_inputs, **kwargs
 ) -> Union[Callable, Tuple[Callable, str]]:
     """Compilation followed by Decompilation allows to check if the decompilation is correct
     We assume Compilation is always correct here.
@@ -58,8 +50,18 @@ def display_wrapped_jaxpr(python_f, x) -> None:
     print(jaxpr_obj)
 
 
-def get_primitive_mapping() -> Dict[str, Callable]:
-    import primitive_mapping
+def _filter_var_name(var_name):
+    """
+    All jaxpr vars should be given to this function
+    Automatic variable names are: a, b, c, ... y, z, aa, ab, ac, ... ic, ID, ie, IF, ig ...
+    """
+    if var_name in PYTHON_KEY_WORDS:
+        return var_name.upper()
+    return var_name
+
+
+def _get_primitive_mapping() -> Dict[str, Callable]:
+    from JaxDecompiler import primitive_mapping
 
     K = {}
     for i in dir(primitive_mapping):
@@ -88,26 +90,27 @@ def _tab_recursively(lines, tab_level) -> List[str]:  # lines is I/O
             raise ValueError("Unexpected type in _tab_recursively()")
     return strings
 
-def _lines_constant(jaxpr_constvars, jaxpr_literals, tab_level)->List[str]:
-    list_python_lines=[]
+
+def _lines_constant(jaxpr_constvars, jaxpr_literals, tab_level) -> List[str]:
+    list_python_lines = []
     for var_name, var_val in zip(jaxpr_constvars, jaxpr_literals):
-        var_name=filter_var_name(str(var_name))
+        var_name = _filter_var_name(str(var_name))
         var_val_literal = repr(var_val)  # from jaxpr object to string literal
 
-        #note the whitespace, "Array"->"array" "DeviceArray"->"DeviceArray"
+        # note the whitespace, "Array"->"array" "DeviceArray"->"DeviceArray"
         var_val_literal = var_val_literal.replace("DeviceArray", "array")
-        var_val_literal=var_val_literal.replace("Array", "array")
+        var_val_literal = var_val_literal.replace("Array", "array")
 
-
-        line=f"{var_name} = {var_val_literal}"
-        tabbed_line = _tab(line, tab_level )
+        line = f"{var_name} = {var_val_literal}"
+        tabbed_line = _tab(line, tab_level)
         list_python_lines.append(tabbed_line)
     return list_python_lines
+
 
 def _line_input(jaxpr, tab_level=0, python_func_name="f") -> str:
     if not hasattr(jaxpr, "invars"):
         return "def f():"
-    str_input = [filter_var_name(str(var)) for var in jaxpr.invars]
+    str_input = [_filter_var_name(str(var)) for var in jaxpr.invars]
     args = ", ".join(str_input)
     python_body_line = f"def {python_func_name}({args}):"
     line = _tab(python_body_line, tab_level)
@@ -118,7 +121,7 @@ def _line_return(jaxpr, tab_level=1) -> str:
     if not hasattr(jaxpr, "outvars"):
         python_body_line = "pass #no output"
     else:
-        str_output = [filter_var_name(str(var)) for var in jaxpr.outvars]
+        str_output = [_filter_var_name(str(var)) for var in jaxpr.outvars]
         args = ", ".join(str_output)
         python_body_line = f"return {args}"
     line = _tab(python_body_line, tab_level)
@@ -130,9 +133,9 @@ def _line_body(eqn, K, tab_level) -> List[Union[List, str]]:
 
     # Due to some python naming constraints, we create some exceptions to the mapping
     # jaxpr function name -> python function name
-    python_op_name=jaxpr_op_name.replace("-","_") #e.g., jaxpr "scatter-add" become python "scatter_add"
+    python_op_name = jaxpr_op_name.replace("-", "_")  # e.g., jaxpr "scatter-add" become python "scatter_add"
     if python_op_name in PYTHON_KEY_WORDS:
-        python_op_name = python_op_name+"__" #e.g., jaxpr "or" become python "or__"
+        python_op_name = python_op_name + "__"  # e.g., jaxpr "or" become python "or__"
 
     if python_op_name not in K:
         raise TypeError(f'Instruction: "{python_op_name}" not yet supported')
@@ -143,11 +146,11 @@ def _line_body(eqn, K, tab_level) -> List[Union[List, str]]:
     eqn.params["decompiler_line_return"] = _line_return
     eqn.params["decompiler_K"] = K
     eqn.params["decompiler_tab"] = _tab
-    eqn.params["decompiler_filter_var_name"] = filter_var_name
+    eqn.params["decompiler_filter_var_name"] = _filter_var_name
 
     # process var names
-    input_var = [filter_var_name(str(var)) for var in eqn.invars]
-    output_var = [filter_var_name(str(var)) for var in eqn.outvars]
+    input_var = [_filter_var_name(str(var)) for var in eqn.invars]
+    output_var = [_filter_var_name(str(var)) for var in eqn.outvars]
 
     # build the line as string
     python_body_line_builder = K[python_op_name]
@@ -163,19 +166,20 @@ def _line_body(eqn, K, tab_level) -> List[Union[List, str]]:
     return list_python_lines
 
 
-def import_statements(tabbed_python_lines) -> None:
+def _import_statements(tabbed_python_lines) -> None:
     tabbed_python_lines.append("import jax")
     tabbed_python_lines.append("from jax.numpy import *")
     tabbed_python_lines.append("from jax._src import prng")
 
+
 def decompiler(
-    jaxpr_obj, starting_tab_level=0, python_func_name="f"
+        jaxpr_obj, starting_tab_level=0, python_func_name="f"
 ) -> List[Union[List, str]]:
     jaxpr_code = jaxpr_obj.jaxpr
-    K = get_primitive_mapping()
+    K = _get_primitive_mapping()
     tabbed_python_lines = []
 
-    import_statements(tabbed_python_lines)
+    _import_statements(tabbed_python_lines)
 
     p = _line_input(jaxpr_code, starting_tab_level, python_func_name=python_func_name)
     tabbed_python_lines.append(p)
@@ -197,7 +201,7 @@ def decompiler(
 
 
 def _recursively_write_python_program(
-    file, lines
+        file, lines
 ) -> None:  # warning lines may contains lines
     for line in lines:
         if isinstance(line, list):
@@ -208,8 +212,8 @@ def _recursively_write_python_program(
             raise ValueError("unexpected event occurs")
 
 
-def from_strings_to_callable(
-    python_lines, module_name="decompiled_module", dir_path="out"
+def _from_strings_to_callable(
+        python_lines, module_name="decompiled_module", dir_path="out"
 ) -> Callable:
     """warning this function create a file named "`module_name`.py" in the directory `dir_path`"""
 

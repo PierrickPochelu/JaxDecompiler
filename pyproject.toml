@@ -1,9 +1,9 @@
 [build-system]
-requires = ["setuptools","jax"]
+requires = ["setuptools", "jax"]
 
 [project]
-name = "JaxDecompiler_PierrickPochelu"
-version = "0.0.1"
+name = "JaxDecompiler"
+version = "0.0.3"
 authors = [
   { name="Pierrick Pochelu", email="pierrick.pochelu@gmail.com" },
 ]
@@ -12,7 +12,7 @@ readme = "README.md"
 requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: GNU Lesser General Public License v3.0",
+    "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
     "Operating System :: OS Independent",
 ]
 

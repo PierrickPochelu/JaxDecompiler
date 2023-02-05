@@ -6,6 +6,12 @@ The JAX decompiler takes jaxpr code and produces a more readable Python code. Ev
 Associated pr:
 https://github.com/google/jax/issues/13398
 
+## Installation
+
+```bash
+pip3 install JaxDecompiler
+```
+
 ## Usage example
 
 Given any jaxpr function, here "df", we want to generate the associated Python code.
@@ -26,7 +32,7 @@ Function df is implemented with jaxpr code. You can display it with:
 
 ```python
 
-from src import decompiler
+from JaxDecompiler import decompiler
 
 decompiler.display_wrapped_jaxpr(df, (1.0, 1.0))
 ```
@@ -48,7 +54,7 @@ The below code decompiles it automatically. It generates the python function and
 
 ```python
 
-from src import decompiler
+from JaxDecompiler import decompiler
 
 decompiled_df, python_code = decompiler.python_jaxpr_python(
     df, (1.0, 1.0), is_python_returned=True
@@ -93,7 +99,7 @@ Notice: python_jaxpr_python create out/ folder in the current directory.
 ## Next steps
 
 There are the next steps:
-* **More operators**. Today ~50 jaxpr operators are implemented ('add', 'mul', 'cos', ...). The exhaustive list of the implemented operators is in the file "primitive_mapping.py". This python file aims to map jaxpr operator (the name of the functions) into python code (string returned by the function).
+* **More operators**. Today ~60 jaxpr operators are implemented ('add', 'mul', 'cos', ...). The exhaustive list of the implemented operators is in the file "primitive_mapping.py". This python file aims to map jaxpr operator (the name of the functions) into python code (string returned by the function).
 
 * **Automatic refactoring**. There is room for improvement to make the automatically produced Python code easier to read/maintain. 
 An automatic refactoring tool should be able to translate this low-level Python style into a more readable one for humans.

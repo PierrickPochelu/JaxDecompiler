@@ -2,6 +2,8 @@
 # CODE SAMPLES USED IN README.md #
 ##################################
 
+# This code simulates the user code after instalation with `pip3 install JaxDecompiler`
+
 import jax
 
 
@@ -13,7 +15,7 @@ def f(x, smooth_rate):
 
 df = jax.grad(f, (0,))
 
-import decompiler  # <--- My contribution
+from JaxDecompiler import decompiler  # <--- My contribution
 
 # Let's display the jaxpr code
 decompiler.display_wrapped_jaxpr(df, (1.0, 1.0))
