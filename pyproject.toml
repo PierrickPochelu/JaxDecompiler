@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools","jax"]
+
+[project]
+name = "JaxDecompiler_PierrickPochelu"
+version = "0.0.1"
+authors = [
+  { name="Pierrick Pochelu", email="pierrick.pochelu@gmail.com" },
+]
+description = "Jax Decompiler"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU Lesser General Public License v3.0",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/PierrickPochelu/JaxDecompiler"
+"Bug Tracker" = "https://github.com/PierrickPochelu/JaxDecompiler/issues"

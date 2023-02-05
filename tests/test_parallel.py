@@ -1,7 +1,7 @@
 import unittest
 import jax
 from jax.numpy import *
-import decompiler
+from src import decompiler
 
 DELTA = 0.001
 

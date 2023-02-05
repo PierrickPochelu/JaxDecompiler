@@ -23,8 +23,11 @@ df = jax.grad(f, (0,))
 ```
 
 Function df is implemented with jaxpr code. You can display it with:
+
 ```python
-import decompiler   # <--- My contribution****
+
+from src import decompiler
+
 decompiler.display_wrapped_jaxpr(df, (1.0, 1.0))
 ```
 returns:
@@ -44,7 +47,8 @@ constvars: []
 The below code decompiles it automatically. It generates the python function and its python code as text.
 
 ```python
-import decompiler  # <--- My contribution
+
+from src import decompiler
 
 decompiled_df, python_code = decompiler.python_jaxpr_python(
     df, (1.0, 1.0), is_python_returned=True
