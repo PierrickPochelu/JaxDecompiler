@@ -1,7 +1,7 @@
 # JaxDecompiler
 Jax Decompiler
 
-The JAX decompiler takes jaxpr code and produces a more readable Python code. Even if some information about the original function is lost (obfuscated code) like variable names being lost, it is an important tool for reverse-engineering.
+The JAX decompiler takes jaxpr code and produces Python code. Even if some information about the original function is lost (obfuscated code) like variable names being lost, it is an important tool for reverse-engineering. There are many applications where decompiling gradient functions is useful. 
 
 Associated pr:
 https://github.com/google/jax/issues/13398
