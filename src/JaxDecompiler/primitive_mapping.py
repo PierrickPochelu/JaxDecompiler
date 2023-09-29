@@ -488,3 +488,10 @@ def stop_gradient(input_var, output_var, params):
 def transpose(input_var, output_var, params):
     perm = params["permutation"]
     return f"{output_var[0]} = transpose({input_var[0]}, axes={perm})"
+
+
+def iota(input_var, output_var, params):
+    d=params["dimension"]
+    t=params["dtype"]
+    s=params["shape"]
+    return f"{output_var[0]} = jax.lax.iota({t},{s})"
