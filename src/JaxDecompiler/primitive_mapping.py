@@ -3,6 +3,7 @@ import builtins
 
 _LOCAL_F_COUNT = 0
 
+
 def _recurive_op(params, python_call, local_f_name):
     # Recursive calls
     K = params["decompiler_K"]
@@ -36,10 +37,10 @@ def _recurive_op(params, python_call, local_f_name):
 
     # MERGE THE LOCAL FUNCTION CODES AND THE CALL CODE
     out = (
-            input_local_f_lines
-            + body_local_f_lines
-            + output_local_f_lines
-            + call_local_f_lines
+        input_local_f_lines
+        + body_local_f_lines
+        + output_local_f_lines
+        + call_local_f_lines
     )
 
     return out
@@ -123,7 +124,16 @@ def exp(input_var, output_var, params):
 def dot_general(input_var, output_var, params):
     rvalue = ", ".join(input_var)
     lvalue = output_var[0]
-    return f"{lvalue} = dot({rvalue})"
+    dim_num = params["dimension_numbers"]
+    contraction_dims = dim_num[0]
+    batch_dims = dim_num[1]  # TODO: not implemented yet
+
+    if contraction_dims == ((), ()):
+        return f"{lvalue} = outer({rvalue})"
+    elif contraction_dims == ((0,), (0,)):
+        return f"{lvalue} = dot({rvalue})"
+    else:
+        return f"{lvalue} = tensordot({rvalue},axes={contraction_dims})"
 
 
 def cos(input_var, output_var, params):
@@ -192,42 +202,50 @@ def gather(input_var, output_var, params):
 
     return f"{output_var[0]} = squeeze( array({arr}{slicing_code}) , axis={collapsed_dims})"
 
+
 def random_seed(input_var, output_var, params):
-    #return f"{output_var[0]} = random.seed({input_var[0]})"
-    impl_obj=params["impl"]
+    # return f"{output_var[0]} = random.seed({input_var[0]})"
+    impl_obj = params["impl"]
     PRNG_IMPLS = {
-        'threefry2x32': "prng.threefry_prng_impl",
-        'rbg': "prng.rbg_prng_impl",
-        'unsafe_rbg': "prng.unsafe_rbg_prng_impl",
-        "fry":  "prng.threefry_prng_impl",
+        "threefry2x32": "prng.threefry_prng_impl",
+        "rbg": "prng.rbg_prng_impl",
+        "unsafe_rbg": "prng.unsafe_rbg_prng_impl",
+        "fry": "prng.threefry_prng_impl",
     }
-    impl=PRNG_IMPLS[impl_obj.tag]
+    impl = PRNG_IMPLS[impl_obj.tag]
     return f"{output_var[0]} = jax.random.PRNGKeyArray(key_data=jax.random.PRNGKey({input_var[0]}),impl={impl})"
 
+
 def random_unwrap(input_var, output_var, params):
-    #return f"{output_var[0]} = {input_var[0]}.unwrap()"
+    # return f"{output_var[0]} = {input_var[0]}.unwrap()"
     return f"{output_var[0]} = prng.random_unwrap({input_var[0]})"
+
+
 def random_wrap(input_var, output_var, params):
-    impl_obj=params["impl"]
+    impl_obj = params["impl"]
     PRNG_IMPLS = {
-        'threefry2x32': "prng.threefry_prng_impl",
-        'rbg': "prng.rbg_prng_impl",
-        'unsafe_rbg': "prng.unsafe_rbg_prng_impl",
-        "fry":  "prng.threefry_prng_impl",
+        "threefry2x32": "prng.threefry_prng_impl",
+        "rbg": "prng.rbg_prng_impl",
+        "unsafe_rbg": "prng.unsafe_rbg_prng_impl",
+        "fry": "prng.threefry_prng_impl",
     }
-    impl=PRNG_IMPLS[impl_obj.tag]
+    impl = PRNG_IMPLS[impl_obj.tag]
 
     return f"{output_var[0]} = prng.random_wrap({input_var[0]}, impl={impl})"
 
+
 def random_bits(input_var, output_var, params):
-    options=f"bit_width={params['bit_width']}, shape={params['shape']}"
+    options = f"bit_width={params['bit_width']}, shape={params['shape']}"
     return f"{output_var[0]} = prng.random_bits({input_var[0]}, {options})"
+
 
 def shift_right_logical(input_var, output_var, params):
     return f"{output_var[0]} = right_shift({input_var[0]}, {input_var[1]})"
 
+
 def shift_left_logical(input_var, output_var, params):
     return f"{output_var[0]} = left_shift({input_var[0]}, {input_var[1]})"
+
 
 def concatenate(input_var, output_var, params):
     dim = params["dimension"]
@@ -246,26 +264,36 @@ def argmin(input_var, output_var, params):
 def argmax(input_var, output_var, params):
     return f"{output_var[0]} = argmax({input_var[0]})"
 
+
 def min(input_var, output_var, params):
     return f"{output_var[0]} = array([min({input_var[0]})])"
+
 
 def reduce_min(input_var, output_var, params):
     return f"{output_var[0]} = min({input_var[0]})"
 
+
 def max(input_var, output_var, params):
     return f"{output_var[0]} = array([max({input_var[0]})])"
+
 
 def reduce_max(input_var, output_var, params):
     return f"{output_var[0]} = max({input_var[0]})"
 
+
 def abs(input_var, output_var, params):
     return f"{output_var[0]} = abs({input_var[0]})"
+
 
 def sign(input_var, output_var, params):
     return f"{output_var[0]} = sign({input_var[0]})"
 
+
 def reduce_sum(input_var, output_var, params):
-    return f"{output_var[0]} = sum({input_var[0]})"
+    if "axes" in params:
+        return f"{output_var[0]} = sum({input_var[0]},axis={params['axes']})"
+    else:
+        return f"{output_var[0]} = sum({input_var[0]})"
 
 
 def broadcast_in_dim(input_var, output_var, params):
@@ -295,19 +323,26 @@ def eq(input_var, output_var, params):  # element wise not equal
     rvalue = "==".join(input_var)
     return f"{output_var[0]} = {rvalue}"
 
+
 def ge(input_var, output_var, params):
     rvalue = ">=".join(input_var)
     return f"{output_var[0]} = {rvalue}"
+
+
 def gt(input_var, output_var, params):
     rvalue = ">=".join(input_var)
     return f"{output_var[0]} = {rvalue}"
+
+
 def le(input_var, output_var, params):
     rvalue = "<=".join(input_var)
     return f"{output_var[0]} = {rvalue}"
 
+
 def lt(input_var, output_var, params):
     rvalue = "<=".join(input_var)
     return f"{output_var[0]} = {rvalue}"
+
 
 def sort(input_var, output_var, params):
     rvalue = ", ".join(input_var)
@@ -364,13 +399,14 @@ def conv_general_dilated(input_var, output_var, params):
 def dynamic_slice(input_var, output_var, params):  # TODO: unit test
     a, b = input_var
     ss = params["slice_sizes"]
-    #return f"{output_var[0]} = {a}[{b}:{b}+{ss}[0]] # dynamic slice"
+    # return f"{output_var[0]} = {a}[{b}:{b}+{ss}[0]] # dynamic slice"
     return f"{output_var[0]} = jax.lax.dynamic_slice_in_dim({a}, {b}, {ss}[0], axis=0)"
 
+
 def slice(input_var, output_var, params):  # TODO: unit test
-    start = params['start_indices']  # e.g. "(1, 2)", "(0, )", "a"
-    limit = params['limit_indices']
-    strides = params['strides']
+    start = params["start_indices"]  # e.g. "(1, 2)", "(0, )", "a"
+    limit = params["limit_indices"]
+    strides = params["strides"]
 
     # Example 1: ["(1, 2)", "(3, 4)", "(5, 6)"] -> we want "[1:3:5][2:4:6]"
     # Example 2: ["(1, 2)", "(3, 4)", None] -> we want "[1:3:][2:4:]"
@@ -386,7 +422,7 @@ def slice(input_var, output_var, params):  # TODO: unit test
             for symbol in ["(", ")", " "]:
                 v = v.replace(symbol, "")
             v_splited = v.split(",")
-            if v_splited[-1]=="": #(1,) -> ["1"] not ["1", ""]
+            if v_splited[-1] == "":  # (1,) -> ["1"] not ["1", ""]
                 v_splited.pop(-1)
             splitted_inputs.append(v_splited)
         else:
@@ -417,27 +453,38 @@ def slice(input_var, output_var, params):  # TODO: unit test
 
 def dynamic_update_slice(input_var, output_var, params):  # TODO: unit test
     a, b, c = input_var
-    #return f"{output_var[0]} = concatenate([ {b}[{c}:] , {a}]) # dynamic update slice"
+    # return f"{output_var[0]} = concatenate([ {b}[{c}:] , {a}]) # dynamic update slice"
     return f"{output_var[0]} = jax.lax.dynamic_update_slice({a}, {b}, ({c},))"
+
 
 def scatter_add(input_var, output_var, params):  # TODO: unit test
     a, b, c = input_var
     return f"{output_var[0]} = add.ad({a}, {b}, {c})"
 
+
 def or__(input_var, output_var, params):
     a, b = input_var
     return f"{output_var[0]} = {a} | {b}"
+
 
 def and__(input_var, output_var, params):
     a, b = input_var
     return f"{output_var[0]} = {a} & {b}"
 
+
 def bitcast_convert_type(input_var, output_var, params):
-    dt=params["new_dtype"]
+    dt = params["new_dtype"]
     return f"{output_var[0]} = jax.lax.bitcast_convert_type({input_var[0]}, new_dtype={dt})"
+
 
 def erf_inv(input_var, output_var, params):
     return f"{output_var[0]} = jax.lax.erf_inv({input_var[0]})"
 
+
 def stop_gradient(input_var, output_var, params):
     return f"{output_var[0]} = {input_var[0]} # stop grad"
+
+
+def transpose(input_var, output_var, params):
+    perm = params["permutation"]
+    return f"{output_var[0]} = transpose({input_var[0]}, axes={perm})"

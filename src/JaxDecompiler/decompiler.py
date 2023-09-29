@@ -5,11 +5,26 @@ import jax
 from os import path
 
 # Keep the alphabetical order below for readability purpose.
-PYTHON_KEY_WORDS = {"id", "if", "in", "or", "is", "def", "del", "for", "not", "set", "try", "elif", "else", "from"}
+PYTHON_KEY_WORDS = {
+    "id",
+    "if",
+    "in",
+    "or",
+    "is",
+    "def",
+    "del",
+    "for",
+    "not",
+    "set",
+    "try",
+    "elif",
+    "else",
+    "from",
+}
 
 
 def from_jaxpr_object_to_python(
-        jaxpr_obj, module_name="decompiled_module", dir_path="out", is_python_returned=False
+    jaxpr_obj, module_name="decompiled_module", dir_path="out", is_python_returned=False
 ) -> Union[Callable, Tuple[Callable, str]]:
     """from jaxpr code to python code"""
     python_lines = decompiler(jaxpr_obj)
@@ -24,7 +39,7 @@ def from_jaxpr_object_to_python(
 
 
 def python_jaxpr_python(
-        python_f, moc_inputs, **kwargs
+    python_f, moc_inputs, **kwargs
 ) -> Union[Callable, Tuple[Callable, str]]:
     """Compilation followed by Decompilation allows to check if the decompilation is correct
     We assume Compilation is always correct here.
@@ -61,7 +76,8 @@ def _filter_var_name(var_name):
 
 
 def _get_primitive_mapping() -> Dict[str, Callable]:
-    from JaxDecompiler import primitive_mapping
+    # from JaxDecompiler import primitive_mapping
+    from src.JaxDecompiler import primitive_mapping
 
     K = {}
     for i in dir(primitive_mapping):
@@ -133,7 +149,9 @@ def _line_body(eqn, K, tab_level) -> List[Union[List, str]]:
 
     # Due to some python naming constraints, we create some exceptions to the mapping
     # jaxpr function name -> python function name
-    python_op_name = jaxpr_op_name.replace("-", "_")  # e.g., jaxpr "scatter-add" become python "scatter_add"
+    python_op_name = jaxpr_op_name.replace(
+        "-", "_"
+    )  # e.g., jaxpr "scatter-add" become python "scatter_add"
     if python_op_name in PYTHON_KEY_WORDS:
         python_op_name = python_op_name + "__"  # e.g., jaxpr "or" become python "or__"
 
@@ -173,7 +191,7 @@ def _import_statements(tabbed_python_lines) -> None:
 
 
 def decompiler(
-        jaxpr_obj, starting_tab_level=0, python_func_name="f"
+    jaxpr_obj, starting_tab_level=0, python_func_name="f"
 ) -> List[Union[List, str]]:
     jaxpr_code = jaxpr_obj.jaxpr
     K = _get_primitive_mapping()
@@ -185,7 +203,9 @@ def decompiler(
     tabbed_python_lines.append(p)
 
     # Constants
-    l = _lines_constant(jaxpr_code.constvars, jaxpr_obj.literals, starting_tab_level + 1)
+    l = _lines_constant(
+        jaxpr_code.constvars, jaxpr_obj.literals, starting_tab_level + 1
+    )
     tabbed_python_lines.extend(l)
 
     # body of the function
@@ -201,7 +221,7 @@ def decompiler(
 
 
 def _recursively_write_python_program(
-        file, lines
+    file, lines
 ) -> None:  # warning lines may contains lines
     for line in lines:
         if isinstance(line, list):
@@ -213,7 +233,7 @@ def _recursively_write_python_program(
 
 
 def _from_strings_to_callable(
-        python_lines, module_name="decompiled_module", dir_path="out"
+    python_lines, module_name="decompiled_module", dir_path="out"
 ) -> Callable:
     """warning this function create a file named "`module_name`.py" in the directory `dir_path`"""
 

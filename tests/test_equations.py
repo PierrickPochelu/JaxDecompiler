@@ -7,7 +7,6 @@ DELTA = 0.001
 
 
 class MyTestCase(unittest.TestCase):
-
     def test_neg(self):
         f = lambda x: -x
 
@@ -29,7 +28,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_pow_sqrt(self):
         def python_f(x):
-            return sqrt(x), x ** -0.1, x ** 2
+            return sqrt(x), x**-0.1, x**2
 
         decompiled_df = decompiler.python_jaxpr_python(python_f, (1.0,))
         y = decompiled_df(2.0)
@@ -69,7 +68,14 @@ class MyTestCase(unittest.TestCase):
 
     def test_non_derivable(self):
         def f(x):
-            return max(array((x, 0))), min(array((x, 0))), round(x), ceil(x), floor(x), abs(x)
+            return (
+                max(array((x, 0))),
+                min(array((x, 0))),
+                round(x),
+                ceil(x),
+                floor(x),
+                abs(x),
+            )
 
         # return
         decompiled_f = decompiler.python_jaxpr_python(f, (0.1,))
@@ -86,7 +92,9 @@ class MyTestCase(unittest.TestCase):
             key = jax.random.PRNGKey(random_seed)
 
             std = 0.0001
-            gaussian_noise = jax.random.normal(shape=(1,), key=key, dtype=float32)[0] * std
+            gaussian_noise = (
+                jax.random.normal(shape=(1,), key=key, dtype=float32)[0] * std
+            )
             return x + gaussian_noise
 
         # return
@@ -104,7 +112,12 @@ class MyTestCase(unittest.TestCase):
 
             interval = 0.0001
             uniform_noise = jax.random.uniform(
-                shape=(1,), key=key, dtype=float32, minval=-1 * interval, maxval=interval)[0]
+                shape=(1,),
+                key=key,
+                dtype=float32,
+                minval=-1 * interval,
+                maxval=interval,
+            )[0]
 
             return x + uniform_noise
 
