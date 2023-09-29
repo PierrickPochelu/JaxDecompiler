@@ -491,7 +491,7 @@ def transpose(input_var, output_var, params):
 
 
 def iota(input_var, output_var, params):
-    d=params["dimension"]
-    t=params["dtype"]
-    s=params["shape"]
+    d = params["dimension"]
+    t = params["dtype"]
+    s = params["shape"]
     return f"{output_var[0]} = jax.lax.iota({t},{s})"

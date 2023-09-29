@@ -41,14 +41,29 @@ def from_jaxpr_object_to_python(
 def python_jaxpr_python(
     python_f, moc_inputs, **kwargs
 ) -> Union[Callable, Tuple[Callable, str]]:
-    """Compilation followed by Decompilation allows to check if the decompilation is correct
-    We assume Compilation is always correct here.
-    Therefore, input program should be similar to the output program"""
+    """
+    Converts from jaxpr function to a Python function
+    Named argument `is_python=True` allows to return the code as string
+    returns: the function behaving like `python_f` but implemented with Python and if is_python=True its code
+    """
     jaxpr_obj = jax.make_jaxpr(python_f)(*moc_inputs)
 
     out = from_jaxpr_object_to_python(jaxpr_obj, **kwargs)
 
     return out  # can be either (f:Callable,code:str) or f:Callable
+
+
+def jaxpr2python(python_f, *args, **kwargs) -> Union[Callable, Tuple[Callable, str]]:
+    """
+    python_f
+    args: contains parameter of python_f
+    kwargs: when is_python=true, return the decompiled function and its code
+    """
+    jaxpr_obj = jax.make_jaxpr(python_f)(*args)
+
+    out = from_jaxpr_object_to_python(jaxpr_obj, **kwargs)
+
+    return out
 
 
 def display_wrapped_jaxpr(python_f, x) -> None:
