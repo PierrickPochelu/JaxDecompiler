@@ -61,8 +61,10 @@ def jaxpr2python(python_f, *args, **kwargs) -> Union[Callable, Tuple[Callable, s
     """
     jaxpr_obj = jax.make_jaxpr(python_f)(*args)
 
+    if "is_python" in kwargs and kwargs["is_python"]:
+        kwargs["is_python_returned"] = True
+        del kwargs["is_python"]
     out = from_jaxpr_object_to_python(jaxpr_obj, **kwargs)
-
     return out
 
 
@@ -91,8 +93,8 @@ def _filter_var_name(var_name):
 
 
 def _get_primitive_mapping() -> Dict[str, Callable]:
-    # from JaxDecompiler import primitive_mapping
-    from src.JaxDecompiler import primitive_mapping
+    # from JaxDecompiler import primitive_mapping # Prod phase
+    from src.JaxDecompiler import primitive_mapping  # Development phase
 
     K = {}
     for i in dir(primitive_mapping):
@@ -202,6 +204,7 @@ def _line_body(eqn, K, tab_level) -> List[Union[List, str]]:
 def _import_statements(tabbed_python_lines) -> None:
     tabbed_python_lines.append("import jax")
     tabbed_python_lines.append("from jax.numpy import *")
+    tabbed_python_lines.append("from jax.experimental import sparse")
     tabbed_python_lines.append("from jax._src import prng")
 
 

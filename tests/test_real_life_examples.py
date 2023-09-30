@@ -200,6 +200,31 @@ class MyTestCase(unittest.TestCase):
         gap = sum(array(history_loss_expected) - array(history_loss))
         self.assertAlmostEqual(0.0, gap, delta=DELTA)
 
+    def test_sparse_linear_regression(self):
+        from jax.experimental import sparse
+
+        def loss(W, X, Y):
+            return mean(W.data @ X - Y) ** 2
+
+        dloss = jax.grad(loss, argnums=(0,), allow_int=True)
+
+        X = array([[1, 2, 3]], dtype=float).T
+        Y = array([[3, 2, 1]], dtype=float).T
+        W = array([[0.1, 0, 0], [0, 0.01, 0], [0, 0, 0], [0, 0, 0]], dtype=float)
+        W = sparse.COO.fromdense(W, nse=3)
+
+        from src.JaxDecompiler import decompiler
+
+        decomp = decompiler.jaxpr2python(dloss, W, X, Y)
+
+        y_exp = dloss(W, X, Y)
+
+        y0, y1, y2 = decomp(W.data, W.row, W.col, X, Y)
+
+        gap = sum(y_exp[0].data - y0)
+
+        self.assertAlmostEqual(0.0, gap, delta=DELTA)
+
     def test_MZI(self):
         def MZI(teta, X):
             R = array([[cos(teta), -sin(teta)], [sin(teta), cos(teta)]])

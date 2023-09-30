@@ -183,24 +183,9 @@ def gather(input_var, output_var, params):
 
     start_indices = input_var[1]  # ex: [0,0]
     slice_sizes = list(params["slice_sizes"])  # [1,1,7]
-
-    # while(len(start_indices) < len(slice_sizes)):
-    #    start_indices.append(0)
-
-    slicing_code = "["
-    d = 0
-    for end in slice_sizes:
-        start = f"{start_indices}[{d}]"
-        dim_slice = f"{start} if len({start_indices})>{d} else 0:{start}+{end},"
-        slicing_code += dim_slice
-        d += 1
-    slicing_code = slicing_code[:-1]
-    slicing_code += "]"
-
     dim_num_obj = params["dimension_numbers"]
-    collapsed_dims = dim_num_obj.collapsed_slice_dims
 
-    return f"{output_var[0]} = squeeze( array({arr}{slicing_code}) , axis={collapsed_dims})"
+    return f"{output_var[0]} = jax.lax.gather({arr}, {start_indices}, jax.lax.{dim_num_obj}, {slice_sizes})"
 
 
 def random_seed(input_var, output_var, params):
@@ -299,7 +284,16 @@ def reduce_sum(input_var, output_var, params):
 def broadcast_in_dim(input_var, output_var, params):
     rvalue = ",".join(input_var)
     shape = params["shape"]
-    return f"{output_var[0]} = array(broadcast_to({rvalue}, {shape}))"
+    tmp_var = "tmp_broadcast"
+
+    lines = []
+    lines.append(
+        f"{tmp_var} = array({rvalue}) if isinstance({rvalue}, ndarray) or isscalar({rvalue}) else array(-1)"
+    )
+    lines.append(
+        f"{output_var[0]} = {tmp_var}.reshape({shape}) if prod(array(array({tmp_var}).shape))==prod(array({shape})) else array(broadcast_to({tmp_var}, {shape}))"
+    )
+    return lines
 
 
 def select_n(input_var, output_var, params):
@@ -495,3 +489,22 @@ def iota(input_var, output_var, params):
     t = params["dtype"]
     s = params["shape"]
     return f"{output_var[0]} = jax.lax.iota({t},{s})"
+
+
+def coo_fromdense(input_var, output_var, params):
+    nse = params["nse"]
+    index_dtype = params["index_dtype"]
+    lvalue = ", ".join(output_var)
+    tmp = f"tmp_{input_var[0]}"
+    lines = []
+    lines.append(
+        f"{tmp} = sparse.COO.fromdense({input_var[0]},nse={nse}, index_dtype=jax.numpy.int32)"
+    )
+    lines.append(f"{lvalue} = {tmp}.data, {tmp}.row, {tmp}.col")
+    return lines
+
+
+def coo_matvec(input_var, output_var, params):
+    spinfo = params["spinfo"]
+    vec = input_var[3]
+    return f"{output_var[0]} = {input_var[0]} @ {vec}"
