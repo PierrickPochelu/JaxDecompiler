@@ -335,10 +335,10 @@ def broadcast_in_dim(input_var, output_var, params):
 
     lines = []
     lines.append(
-        f"{tmp_var} = array({rvalue}) if isinstance({rvalue}, ndarray) or isscalar({rvalue}) else array(-1)"
+        f"{tmp_var} = array({rvalue}) if isinstance({rvalue}, ndarray) or isscalar({rvalue}) else -1"
     )
     lines.append(
-        f"{output_var[0]} = {tmp_var}.reshape({shape}) if prod(array(array({tmp_var}).shape))==prod(array({shape})) else array(broadcast_to({tmp_var}, {shape}))"
+        f"{output_var[0]} = array(jax.numpy.broadcast_to({tmp_var}, {shape}))"
     )
     return lines
 
