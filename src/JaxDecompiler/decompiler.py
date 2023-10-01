@@ -6,6 +6,7 @@ from os import path
 
 # Keep the alphabetical order below for readability purpose.
 PYTHON_KEY_WORDS = {
+    "and",
     "id",
     "if",
     "in",

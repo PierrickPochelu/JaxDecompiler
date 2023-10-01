@@ -109,6 +109,24 @@ class MyTestCase(unittest.TestCase):
         gap = sum(y_expected - y)
         self.assertAlmostEqual(0.0, gap, delta=DELTA)
 
+    def test_scan(self):
+        def square(carry, x):
+            y = x**2
+            return y + carry, y
+
+        def python_f(x):
+            return jax.lax.scan(f=square, xs=x, init=0)
+
+        x = array([1, 2, 3], dtype=float32)
+
+        y_expected, local_iteration_results = python_f(x)
+
+        decompiled_f, pycode = decompiler.jaxpr2python(python_f, x, is_python=True)
+        y, _ = decompiled_f(x)
+
+        gap = sum(y_expected - y)
+        self.assertAlmostEqual(0.0, gap, delta=DELTA)
+
 
 if __name__ == "__main__":
     unittest.main()

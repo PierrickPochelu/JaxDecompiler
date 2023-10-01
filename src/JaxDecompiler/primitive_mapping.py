@@ -46,6 +46,48 @@ def _recurive_op(params, python_call, local_f_name):
     return out
 
 
+def _recurive_op_for_scan(params, python_call, local_f_name):
+    # Recursive calls
+    K = params["decompiler_K"]
+    _line_body = params["decompiler_line_body"]
+    _line_input = params["decompiler_line_input"]
+    _line_return = params["decompiler_line_return"]
+    _tab = params["decompiler_tab"]
+    filter_var_name = params["decompiler_filter_var_name"]
+
+    # collect input/output vars
+    input_vars = [filter_var_name(str(v)) for v in params["jaxpr"].jaxpr.invars]
+    output_vars = [filter_var_name(str(v)) for v in params["jaxpr"].jaxpr.outvars]
+
+    args = ", ".join(input_vars)
+    l = f"def {local_f_name}({args}):"
+    input_local_f_lines = [l]
+
+    return_vars = ", ".join(list(output_vars))
+    l = f"return {return_vars}"
+    tabbed_l = _tab(l, 1)
+    output_local_f_lines = [tabbed_l]
+
+    # build body of the global function and the local functions
+    body_local_f_lines = []
+    for eqn in params["jaxpr"].eqns:
+        python_lambda_body = _line_body(eqn, K, 1)  # 'ex: "    b = a + 1.0"
+        body_local_f_lines.append(python_lambda_body)
+
+    # call line
+    call_local_f_lines = [python_call]
+
+    # MERGE THE LOCAL FUNCTION CODES AND THE CALL CODE
+    out = (
+        input_local_f_lines
+        + body_local_f_lines
+        + output_local_f_lines
+        + call_local_f_lines
+    )
+
+    return out
+
+
 def add(input_var, output_var, params):
     rvalue = " + ".join(input_var)  # 2
     lvalue = output_var[0]
@@ -76,6 +118,11 @@ def div(input_var, output_var, params):
     rvalue = " / ".join(input_var)  # 2
     lvalue = output_var[0]
     return f"{lvalue} = {rvalue}"
+
+
+def rem(input_var, output_var, params):
+    rvalue = ", ".join(input_var)
+    return f"{output_var[0]} = jax.lax.rem({rvalue})"
 
 
 def floor(input_var, output_var, params):
@@ -508,3 +555,24 @@ def coo_matvec(input_var, output_var, params):
     spinfo = params["spinfo"]
     vec = input_var[3]
     return f"{output_var[0]} = {input_var[0]} @ {vec}"
+
+
+def scan(input_var, output_ver, params):
+    rvalue = " ,".join(input_var)
+    lvalue = " ,".join(output_ver)
+    reverse = params["reverse"]
+    unroll = params["unroll"]
+    length = params["length"]
+    jaxpr = params["jaxpr"]
+    reverse = params["reverse"]
+    num_carry = params["num_carry"]
+    options = f"length={length}, reverse={reverse}, unroll={unroll}"
+
+    global _LOCAL_F_COUNT
+    local_f_name = "local_f" + str(_LOCAL_F_COUNT)
+    _LOCAL_F_COUNT += 1
+
+    l = f"{lvalue} = jax.lax.scan({local_f_name}, xs={input_var[1]}, init={input_var[0]}, {options})"
+
+    lines = _recurive_op_for_scan(params, l, local_f_name)
+    return lines
