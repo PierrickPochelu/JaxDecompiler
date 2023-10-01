@@ -1,0 +1,50 @@
+import sys
+
+
+CPU = int(sys.argv[1])
+NUM_DATA = int(2 ** int(sys.argv[2]))
+NUM_MIN = 3
+
+print(f"Bench MapReduce: CPU={CPU} NUM_DATA={NUM_DATA} NUM_MIN={NUM_MIN}")
+
+assert NUM_DATA % CPU == 0
+import os
+
+os.environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={CPU}"
+
+from src.JaxDecompiler import decompiler
+import time
+import jax
+import jax.numpy as jnp
+
+
+print(jax.devices())
+num_batches = len(jax.devices())
+
+data = jnp.arange(0.0, 1.0, 1.0 / NUM_DATA)
+data_batches = data.reshape(num_batches, len(data) // num_batches)
+
+
+def L2(batch_data):
+    return jnp.sort(batch_data)[:NUM_MIN]
+
+
+def python_f(data_batches):
+    local_results = jax.pmap(L2)(data_batches)
+    result = jnp.concatenate(local_results, axis=0)
+    return jnp.sort(result)[0:NUM_MIN]
+
+
+start_time = time.time()
+y_expected = python_f(data_batches)
+print("time", time.time() - start_time)
+
+reconstructed_f = decompiler.python_jaxpr_python(python_f, (data_batches,))
+
+start_time = time.time()
+y = reconstructed_f(data_batches)
+print("time2: ", time.time() - start_time)
+
+
+print("y_expected-y=", sum(y_expected) - sum(y))
+print("out: ", y)
