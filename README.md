@@ -5,6 +5,11 @@ The JAX decompiler takes jaxpr code and produces Python code. Even if some infor
 
 Associated pr:
 https://github.com/google/jax/issues/13398
+## Requirements
+
+jax==0.4.0
+
+jaxlib==0.4.0
 
 ## Installation
 
@@ -99,7 +104,7 @@ Notice: python_jaxpr_python create out/ folder in the current directory.
 ## Next steps
 
 There are the next steps:
-* **More operators**. Today ~60 jaxpr operators are implemented ('add', 'mul', 'cos', ...). The exhaustive list of the implemented operators is in the file "primitive_mapping.py". This python file aims to map jaxpr operator (the name of the functions) into python code (string returned by the function).
+* **More operators**. Today >70 jaxpr operators are implemented ('add', 'mul', 'cos', ...). The exhaustive list of the implemented operators is in the file "primitive_mapping.py". This python file aims to map jaxpr operator (the name of the functions) into python code (string returned by the function).
 
 * **Automatic refactoring**. There is room for improvement to make the automatically produced Python code easier to read/maintain. 
 An automatic refactoring tool should be able to translate this low-level Python style into a more readable one for humans.
