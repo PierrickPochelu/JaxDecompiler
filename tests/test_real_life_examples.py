@@ -7,7 +7,7 @@ DELTA = 0.001
 
 
 class MyTestCase(unittest.TestCase):
-    def test_lun4m_equation(self):
+    def test_potential_energy_calculation_for_molecular_dynamics(self): # authored by lun4m Github user
         import jax.numpy as jnp
         from jax import value_and_grad
 
@@ -24,7 +24,7 @@ class MyTestCase(unittest.TestCase):
 
         y_expected = df(*x)
 
-        decomp, pycode = decompiler.python_jaxpr_python(df, x, is_python_returned=True)
+        decomp = decompiler.python_jaxpr_python(df, x)
 
         y = decomp(*x)
 
@@ -54,7 +54,7 @@ class MyTestCase(unittest.TestCase):
         df = jax.jit(df)
         y_expected = df(*x)
 
-        decomp, pycode = decompiler.python_jaxpr_python(df, x, is_python_returned=True)
+        decomp = decompiler.python_jaxpr_python(df, x)
 
         y = decomp(*x)
 
@@ -264,6 +264,54 @@ class MyTestCase(unittest.TestCase):
         dw = deriv_circuit_to_opt_reconstructed(weights, X, Y)
 
         gap = sum(array(dw_expected) - array(dw))
+        self.assertAlmostEqual(0.0, gap, delta=DELTA)
+
+
+    def test_attention(self):
+
+        # encoder representations of four different words
+        word_1 = array([1, 0, 0, 0, 0])
+        word_2 = array([0, 1, 0, 0, 0])
+        word_3 = array([0, 0, 1, 0, 0])
+        word_4 = array([0, 0, 0, 0, 0])
+
+        # stacking the word embeddings into a single array
+        words = array([word_1, word_2, word_3, word_4])
+
+        # generating the weight matrices
+        key = jax.random.PRNGKey(42)
+        W_Q = jax.random.uniform(key, shape=(5, 2))
+        W_K = jax.random.uniform(key, shape=(5, 2))
+        W_V = jax.random.uniform(key, shape=(5, 2))
+
+        def attention(words, W_Q, W_K, W_V):
+
+            # generating the queries, keys and values
+            Q = dot(words, W_Q)
+            K = dot(words, W_K)
+            V = dot(words, W_V)
+
+            # scoring the query vectors against all key vectors
+            attention_score = dot(Q, K.T)
+
+            # computing the weights by a softmax operation
+            scale = K.shape[1] ** 0.5
+            attention_normalized = exp(attention_score) / sum(exp(attention_score), axis=0) # softmax
+
+            # computing the attention by a weighted sum of the value vectors
+            head_output = dot(attention_normalized, V)
+
+            return head_output
+
+        attention_reconstructed = decompiler.python_jaxpr_python(
+            attention, (words, W_Q, W_K, W_V),
+        )
+
+        out_expected=attention(words, W_Q, W_K, W_V)
+        out=attention_reconstructed(words, W_Q, W_K, W_V)
+
+
+        gap = sum(array(out_expected) - array(out))
         self.assertAlmostEqual(0.0, gap, delta=DELTA)
 
 

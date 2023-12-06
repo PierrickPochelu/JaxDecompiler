@@ -4,6 +4,9 @@ export PYTHONPATH="${PYTHONPATH}:${PWD}"
 benchpath="./benchmark/"
 cd ${benchpath}
 
+python3 Simulation.py 100000 2
+python3 Simulation.py 1000 20
+
 python3 MLP.py 1024 1024 2
 python3 MLP.py 16 1024 128
 python3 MLP.py 16 8192 2
