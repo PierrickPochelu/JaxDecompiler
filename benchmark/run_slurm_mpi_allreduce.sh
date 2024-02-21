@@ -8,4 +8,4 @@ NUM_RANKS=$(($SLURM_JOB_NUM_NODES * 128))
 
 echo "NUM_RANKS=${NUM_RANKS}"
 
-mpirun --oversubscribe -n $NUM_RANKS python3 ./example.py
+mpirun --oversubscribe -n $NUM_RANKS python3 ./benchmark/MPI_allreduce.py

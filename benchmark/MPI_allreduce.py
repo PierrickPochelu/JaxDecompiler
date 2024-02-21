@@ -14,17 +14,17 @@ ROUND = 4
 
 comm = MPI.COMM_WORLD
 rank = MPI.COMM_WORLD.Get_rank()
-
+size = MPI.COMM_WORLD.Get_size()
 
 def BENCH(f, arg, message):
-    print(f(arg))  # just in case warmup is important (JIT case)
+    _=f(arg)  # just in case warmup is important (JIT case)
     scores = []
     for i in range(EXP):
         st = time.time()
         y = f(arg)
         scores.append(time.time() - st)
     if rank == 0:
-        print(f"{message} mean:{round(np.mean(scores), ROUND)}, std:{round(np.std(scores), ROUND)}")
+        print(f"{message} size:{size} mean:{round(np.mean(scores), ROUND)}, std:{round(np.std(scores), ROUND)}")
 
 
 def unjitted_decompiled():
