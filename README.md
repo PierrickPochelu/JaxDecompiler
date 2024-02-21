@@ -7,9 +7,12 @@ Associated pr:
 https://github.com/google/jax/issues/13398
 ## Requirements
 
-jax==0.4.0
+jax==0.4.1
+jaxlib==0.4.1
 
-jaxlib==0.4.0
+if distributed pmap needed (multiple machines):
+mpi4py==3.1.5
+mpi4jax==0.3.10
 
 ## Installation
 
@@ -100,6 +103,44 @@ def f(a, b):
 Now, the user owns its derivative code and may easily refactor/edit it! This is a reverse-engineering tool, for example, we can now improving arithemtic stability, manually optimize the code, ...
 
 Notice: python_jaxpr_python create out/ folder in the current directory.
+
+## pmap with MPI
+
+MPI_allreduce.py file:
+```python
+from mpi4py import MPI
+import jax.numpy as jnp
+import mpi4jax 
+
+comm = MPI.COMM_WORLD
+def foo(arr):
+    arr = arr + comm.Get_rank()
+    arr_sum, _ = mpi4jax.allreduce(arr, op=MPI.SUM, comm=comm) # mpi4jax instructions in `foo` are translated into mpi4py instructions in `decompiled_foo`
+    return arr_sum
+
+a = jnp.zeros((3, 3))
+
+from src.JaxDecompiler import decompiler
+
+# Each MPI rank requires different temporary file name (python module)
+decompied_foo = decompiler.python_jaxpr_python(foo, (a,), is_python_returned=False, module_name="decompiled_module" + str(comm.Get_rank())
+
+out=decompied_foo(a)
+```
+
+Run the distributed pmap code:
+```python
+mpirun -n 4 python3 MPI_allreduce.py
+```
+
+JaxDecompiler translates this line:
+```
+arr_sum, _ = mpi4jax.allreduce(arr, op=MPI.SUM, comm=comm)
+```
+into:
+```
+d=MPI.COMM_WORLD.allreduce(b, op=MPI.SUM)
+```
 
 ## Next steps
 
