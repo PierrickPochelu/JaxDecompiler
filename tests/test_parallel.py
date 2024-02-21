@@ -128,5 +128,27 @@ class MyTestCase(unittest.TestCase):
         self.assertAlmostEqual(0.0, gap, delta=DELTA)
 
 
+    def test_1rank_mpi(self):
+        from mpi4py import MPI
+        import jax.numpy as jnp
+        import mpi4jax
+
+        comm = MPI.COMM_WORLD
+        def foo(arr):
+            arr = arr + comm.Get_rank()
+            arr_sum, _ = mpi4jax.allreduce(arr, op=MPI.SUM, comm=comm)
+            return arr_sum
+
+        a = jnp.zeros((3, 3))
+
+        from src.JaxDecompiler import decompiler
+        decompiler.display_wrapped_jaxpr(foo, (a,))
+
+        python_code = decompiler.python_jaxpr_python(foo, (a,), is_python_returned=False)
+
+        out=python_code(a)
+
+        self.assertAlmostEqual(0.0, out[0][0], delta=DELTA)
+
 if __name__ == "__main__":
     unittest.main()

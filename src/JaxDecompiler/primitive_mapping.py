@@ -400,6 +400,13 @@ def reduce_and(input_var, output_var, params):
     rvalue = ", ".join(input_var)
     return f"{output_var[0]} = all({rvalue})"
 
+def create_token(input_var, output_var, params):
+    return f"{output_var[0]} = None # Token"
+
+def allreduce_mpi(input_var, output_var, params):
+    op=params["op"]
+    comm=params["comm"]
+    return f"{output_var[0]}=MPI.COMM_WORLD.allreduce({input_var[0]}, op=MPI.SUM)" #TODO implements other all operations
 
 def xla_pmap(input_var, output_var, params) -> List[Union[List, str]]:
     global _LOCAL_F_COUNT

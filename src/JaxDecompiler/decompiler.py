@@ -205,9 +205,9 @@ def _line_body(eqn, K, tab_level) -> List[Union[List, str]]:
 def _import_statements(tabbed_python_lines) -> None:
     tabbed_python_lines.append("import jax")
     tabbed_python_lines.append("from jax.numpy import *")
-    tabbed_python_lines.append("from jax.experimental import sparse")
-    tabbed_python_lines.append("from jax._src import prng")
-
+    tabbed_python_lines.append("from jax.experimental import sparse") #TODO: call it only if needed
+    tabbed_python_lines.append("from jax._src import prng")  #TODO: call it only if needed
+    tabbed_python_lines.append("from mpi4py import MPI") #TODO: call it only if needed
 
 def decompiler(
     jaxpr_obj, starting_tab_level=0, python_func_name="f"
