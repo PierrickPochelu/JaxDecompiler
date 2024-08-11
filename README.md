@@ -151,3 +151,18 @@ There are the next steps:
 An automatic refactoring tool should be able to translate this low-level Python style into a more readable one for humans.
 
 * **Automatic detection of useless codes**. In the example above, "j" variable is useless.
+
+## Citing JaxDecompiler
+
+```bibtex
+@misc{pochelu2024jaxdecompilerredefininggradientinformedsoftware,
+      title={JaxDecompiler: Redefining Gradient-Informed Software Design}, 
+      author={Pierrick Pochelu},
+      year={2024},
+      eprint={2403.10571},
+      archivePrefix={arXiv},
+      primaryClass={cs.PL},
+      url={https://arxiv.org/abs/2403.10571}, 
+}
+```
+
