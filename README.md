@@ -155,7 +155,7 @@ An automatic refactoring tool should be able to translate this low-level Python 
 ## Citing JaxDecompiler
 
 ```bibtex
-@misc{pochelu2024jaxdecompilerredefininggradientinformedsoftware,
+@misc{pochelu2024jaxdecompiler,
       title={JaxDecompiler: Redefining Gradient-Informed Software Design}, 
       author={Pierrick Pochelu},
       year={2024},
